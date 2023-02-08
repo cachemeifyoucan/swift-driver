@@ -326,6 +326,12 @@ extension Driver {
       // TODO: Should we support -fcoverage-compilation-dir?
       try commandLine.appendAll(.fileCompilationDir, from: &parsedOptions)
     }
+      
+    // CAS related options.
+    if parsedOptions.hasArgument(.enableCas) {
+        commandLine.appendFlag(.enableCas)
+        try commandLine.appendLast(.casPath, from: &parsedOptions)
+    }
 
     // Pass through any subsystem flags.
     try commandLine.appendAll(.Xllvm, from: &parsedOptions)
