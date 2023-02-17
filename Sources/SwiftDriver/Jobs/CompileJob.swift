@@ -234,6 +234,9 @@ extension Driver {
     var inputOutputMap = [TypedVirtualPath: [TypedVirtualPath]]()
 
     commandLine.appendFlag("-frontend")
+    if let additionalArgs = swiftCompilerArgsFromDepScan {
+      additionalArgs.forEach { commandLine.appendFlag($0) }
+    }
     addCompileModeOption(outputType: outputType, commandLine: &commandLine)
 
     let indexFilePath: TypedVirtualPath?

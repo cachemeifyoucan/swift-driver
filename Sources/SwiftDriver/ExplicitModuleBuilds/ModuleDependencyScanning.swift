@@ -48,6 +48,13 @@ extension Diagnostic.Message {
   throws -> InterModuleDependencyGraph {
     var dependencyGraph = try performDependencyScan()
 
+    switch (dependencyGraph.mainModule.details) {
+      case let .swift(mainModule):
+        swiftCompilerArgsFromDepScan = mainModule.commandLine
+      default:
+        break
+    }
+
     if parsedOptions.hasArgument(.printPreprocessedExplicitDependencyGraph) {
       try stdoutStream <<< dependencyGraph.toJSONString()
       stdoutStream.flush()

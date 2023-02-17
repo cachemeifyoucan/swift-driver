@@ -201,6 +201,9 @@ public struct Driver {
   /// Extra command-line arguments to pass to the Swift compiler.
   let swiftCompilerPrefixArgs: [String]
 
+  /// Extra command-line arguments returned by dependency scanner.
+  var swiftCompilerArgsFromDepScan: [String]?
+
   /// The working directory for the driver, if there is one.
   let workingDirectory: AbsolutePath?
 
