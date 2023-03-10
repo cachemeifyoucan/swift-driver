@@ -115,6 +115,9 @@ public struct SwiftModuleDetails: Codable {
 
   /// A flag to indicate whether or not this module is a framework.
   public var isFramework: Bool?
+
+  /// The module cache key of the output module.
+  public var moduleCacheKey: String?
 }
 
 /// Details specific to Swift placeholder dependencies.
@@ -141,14 +144,18 @@ public struct SwiftPrebuiltExternalModuleDetails: Codable {
   /// A flag to indicate whether or not this module is a framework.
   public var isFramework: Bool?
 
+  /// The module cache key of the pre-built module.
+  public var moduleCacheKey: String?
+
   public init(compiledModulePath: TextualVirtualPath,
               moduleDocPath: TextualVirtualPath? = nil,
               moduleSourceInfoPath: TextualVirtualPath? = nil,
-              isFramework: Bool) throws {
+              isFramework: Bool, moduleCacheKey: String? = nil) throws {
     self.compiledModulePath = compiledModulePath
     self.moduleDocPath = moduleDocPath
     self.moduleSourceInfoPath = moduleSourceInfoPath
     self.isFramework = isFramework
+    self.moduleCacheKey = moduleCacheKey
   }
 }
 
@@ -167,14 +174,19 @@ public struct ClangModuleDetails: Codable {
   /// are covered by the directDependencies info of this module
   public var capturedPCMArgs: Set<[String]>?
 
+  /// The module cache key of the output module.
+  public var moduleCacheKey: String?
+
   public init(moduleMapPath: TextualVirtualPath,
               contextHash: String,
               commandLine: [String],
-              capturedPCMArgs: Set<[String]>?) {
+              capturedPCMArgs: Set<[String]>?,
+              moduleCacheKey: String? = nil) {
     self.moduleMapPath = moduleMapPath
     self.contextHash = contextHash
     self.commandLine = commandLine
     self.capturedPCMArgs = capturedPCMArgs
+    self.moduleCacheKey = moduleCacheKey
   }
 }
 

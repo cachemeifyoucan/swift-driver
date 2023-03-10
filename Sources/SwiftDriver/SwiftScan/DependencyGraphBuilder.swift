@@ -179,6 +179,8 @@ private extension SwiftScan {
       try getOptionalStringDetail(from: moduleDetailsRef,
                           using: api.swiftscan_swift_textual_detail_get_context_hash)
     let isFramework = api.swiftscan_swift_textual_detail_get_is_framework(moduleDetailsRef)
+    let moduleCacheKey = try getOptionalStringDetail(from: moduleDetailsRef,
+                                                     using: api.swiftscan_swift_textual_detail_get_module_cache_key)
 
     return SwiftModuleDetails(moduleInterfacePath: moduleInterfacePath,
                               compiledModuleCandidates: compiledModuleCandidates,
@@ -188,7 +190,8 @@ private extension SwiftScan {
                               commandLine: commandLine,
                               contextHash: contextHash,
                               extraPcmArgs: extraPcmArgs,
-                              isFramework: isFramework)
+                              isFramework: isFramework,
+                              moduleCacheKey: moduleCacheKey)
   }
 
   /// Construct a `SwiftPrebuiltExternalModuleDetails` from a `swiftscan_module_details_t` reference
@@ -211,11 +214,14 @@ private extension SwiftScan {
     } else {
       isFramework = false
     }
+    let moduleCacheKey = try getOptionalStringDetail(from: moduleDetailsRef,
+                                                     using: api.swiftscan_swift_binary_detail_get_module_cache_key)
 
     return try SwiftPrebuiltExternalModuleDetails(compiledModulePath: compiledModulePath,
                                                   moduleDocPath: moduleDocPath,
                                                   moduleSourceInfoPath: moduleSourceInfoPath,
-                                                  isFramework: isFramework)
+                                                  isFramework: isFramework,
+                                                  moduleCacheKey: moduleCacheKey)
   }
 
   /// Construct a `SwiftPlaceholderModuleDetails` from a `swiftscan_module_details_t` reference
@@ -256,11 +262,14 @@ private extension SwiftScan {
     } else {
       capturedPCMArgs = nil
     }
+    let moduleCacheKey = try getOptionalStringDetail(from: moduleDetailsRef,
+                                                     using: api.swiftscan_clang_detail_get_module_cache_key)
 
     return ClangModuleDetails(moduleMapPath: moduleMapPath,
                               contextHash: contextHash,
                               commandLine: commandLine,
-                              capturedPCMArgs: capturedPCMArgs)
+                              capturedPCMArgs: capturedPCMArgs,
+                              moduleCacheKey: moduleCacheKey)
   }
 }
 

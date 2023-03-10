@@ -419,6 +419,14 @@ private extension swiftscan_functions_t {
     self.swiftscan_swift_binary_detail_get_is_framework =
       try loadOptional("swiftscan_swift_binary_detail_get_is_framework")
 
+    // Caching related APIs.
+    self.swiftscan_swift_textual_detail_get_module_cache_key =
+      try loadOptional("swiftscan_swift_textual_detail_get_module_cache_key")
+    self.swiftscan_swift_binary_detail_get_module_cache_key =
+      try loadOptional("swiftscan_swift_binary_detail_get_module_cache_key")
+    self.swiftscan_clang_detail_get_module_cache_key =
+      try loadOptional("swiftscan_clang_detail_get_module_cache_key")
+
     // MARK: Required Methods
     func loadRequired<T>(_ symbol: String) throws -> T {
       guard let sym: T = Loader.lookup(symbol: symbol, in: swiftscan) else {

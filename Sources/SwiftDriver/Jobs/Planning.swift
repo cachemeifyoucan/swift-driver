@@ -656,7 +656,8 @@ extension Driver {
                                          toolchain: toolchain,
                                          integratedDriver: integratedDriver,
                                          supportsExplicitInterfaceBuild:
-                                          isFrontendArgSupported(.explicitInterfaceModuleBuild))
+                                          isFrontendArgSupported(.explicitInterfaceModuleBuild),
+                                         enableCAS: parsedOptions.hasArgument(.enableCas))
 
     return try explicitDependencyBuildPlanner!.generateExplicitModuleDependenciesBuildJobs()
   }

@@ -45,6 +45,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   /// Whether we are using the integrated driver via libSwiftDriver shared lib
   private let integratedDriver: Bool
   private let mainModuleName: String?
+  private let enableCAS: Bool
 
   /// Clang PCM names contain a hash of the command-line arguments that were used to build them.
   /// We avoid re-running the hash computation with the use of this cache
@@ -56,13 +57,15 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   public init(dependencyGraph: InterModuleDependencyGraph,
               toolchain: Toolchain,
               integratedDriver: Bool = true,
-              supportsExplicitInterfaceBuild: Bool = false) throws {
+              supportsExplicitInterfaceBuild: Bool = false,
+              enableCAS: Bool = false) throws {
     self.dependencyGraph = dependencyGraph
     self.toolchain = toolchain
     self.integratedDriver = integratedDriver
     self.mainModuleName = dependencyGraph.mainModuleName
     self.reachabilityMap = try dependencyGraph.computeTransitiveClosure()
     self.supportsExplicitInterfaceBuild = supportsExplicitInterfaceBuild
+    self.enableCAS = enableCAS
   }
 
   /// Generate build jobs for all dependencies of the main module.
@@ -297,13 +300,15 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         let isFramework: Bool
         swiftModulePath = .init(file: dependencyInfo.modulePath.path,
                                 type: .swiftModule)
-        isFramework = try dependencyGraph.swiftModuleDetails(of: dependencyId).isFramework ?? false
+        let swiftModuleDetails = try dependencyGraph.swiftModuleDetails(of: dependencyId)
+        isFramework = swiftModuleDetails.isFramework ?? false
         // Accumulate the required information about this dependency
         // TODO: add .swiftdoc and .swiftsourceinfo for this module.
         swiftDependencyArtifacts.append(
           SwiftModuleArtifactInfo(name: dependencyId.moduleName,
                                   modulePath: TextualVirtualPath(path: swiftModulePath.fileHandle),
-                                  isFramework: isFramework))
+                                  isFramework: isFramework,
+                                  moduleCacheKey: swiftModuleDetails.moduleCacheKey))
       case .clang:
         let dependencyInfo = try dependencyGraph.moduleInfo(of: dependencyId)
         let dependencyClangModuleDetails =
@@ -312,7 +317,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         clangDependencyArtifacts.append(
           ClangModuleArtifactInfo(name: dependencyId.moduleName,
                                   modulePath: TextualVirtualPath(path: dependencyInfo.modulePath.path),
-                                  moduleMapPath: dependencyClangModuleDetails.moduleMapPath))
+                                  moduleMapPath: dependencyClangModuleDetails.moduleMapPath,
+                                  moduleCacheKey: dependencyClangModuleDetails.moduleCacheKey))
       case .swiftPrebuiltExternal:
         let prebuiltModuleDetails = try dependencyGraph.swiftPrebuiltDetails(of: dependencyId)
         let compiledModulePath = prebuiltModuleDetails.compiledModulePath
@@ -324,7 +330,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         swiftDependencyArtifacts.append(
           SwiftModuleArtifactInfo(name: dependencyId.moduleName,
                                   modulePath: TextualVirtualPath(path: swiftModulePath.fileHandle),
-                                  isFramework: isFramework))
+                                  isFramework: isFramework,
+                                  moduleCacheKey: prebuiltModuleDetails.moduleCacheKey))
       case .swiftPlaceholder:
         fatalError("Unresolved placeholder dependencies at planning stage: \(dependencyId) of \(moduleId)")
     }

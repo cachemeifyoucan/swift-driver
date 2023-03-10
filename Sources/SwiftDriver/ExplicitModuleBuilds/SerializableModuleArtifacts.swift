@@ -26,14 +26,17 @@
   public let sourceInfoPath: TextualVirtualPath?
   /// A flag to indicate whether this module is a framework
   public let isFramework: Bool
+  /// The cache key for the module.
+  public let moduleCacheKey: String?
 
   init(name: String, modulePath: TextualVirtualPath, docPath: TextualVirtualPath? = nil,
-       sourceInfoPath: TextualVirtualPath? = nil, isFramework: Bool = false) {
+       sourceInfoPath: TextualVirtualPath? = nil, isFramework: Bool = false, moduleCacheKey: String? = nil) {
     self.moduleName = name
     self.modulePath = modulePath
     self.docPath = docPath
     self.sourceInfoPath = sourceInfoPath
     self.isFramework = isFramework
+    self.moduleCacheKey = moduleCacheKey
   }
 }
 
@@ -50,12 +53,16 @@
   public let clangModuleMapPath: TextualVirtualPath
   /// A flag to indicate whether this module is a framework
   public let isFramework: Bool
+  /// The cache key for the module.
+  public let clangModuleCacheKey: String?
 
-  init(name: String, modulePath: TextualVirtualPath, moduleMapPath: TextualVirtualPath) {
+  init(name: String, modulePath: TextualVirtualPath, moduleMapPath: TextualVirtualPath,
+       moduleCacheKey: String? = nil) {
     self.moduleName = name
     self.clangModulePath = modulePath
     self.clangModuleMapPath = moduleMapPath
     self.isFramework = false
+    self.clangModuleCacheKey = moduleCacheKey
   }
 }
 

@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #define SWIFTSCAN_VERSION_MAJOR 0
-#define SWIFTSCAN_VERSION_MINOR 1
+#define SWIFTSCAN_VERSION_MINOR 4
 
 //=== Public Scanner Data Types -------------------------------------------===//
 
@@ -122,6 +122,8 @@ typedef struct {
   (*swiftscan_swift_textual_detail_get_context_hash)(swiftscan_module_details_t);
   bool
   (*swiftscan_swift_textual_detail_get_is_framework)(swiftscan_module_details_t);
+  swiftscan_string_ref_t
+  (*swiftscan_swift_textual_detail_get_module_cache_key)(swiftscan_module_details_t);
 
   //=== Swift Binary Module Details query APIs ------------------------------===//
   swiftscan_string_ref_t
@@ -132,6 +134,8 @@ typedef struct {
   (*swiftscan_swift_binary_detail_get_module_source_info_path)(swiftscan_module_details_t);
   bool
   (*swiftscan_swift_binary_detail_get_is_framework)(swiftscan_module_details_t);
+  swiftscan_string_ref_t
+  (*swiftscan_swift_binary_detail_get_module_cache_key)(swiftscan_module_details_t);
 
   //=== Swift Placeholder Module Details query APIs -------------------------===//
   swiftscan_string_ref_t
@@ -150,6 +154,8 @@ typedef struct {
   (*swiftscan_clang_detail_get_command_line)(swiftscan_module_details_t);
   swiftscan_string_set_t *
   (*swiftscan_clang_detail_get_captured_pcm_args)(swiftscan_module_details_t);
+  swiftscan_string_ref_t
+  (*swiftscan_clang_detail_get_module_cache_key)(swiftscan_module_details_t);
 
   //=== Batch Scan Input Functions ------------------------------------------===//
   swiftscan_batch_scan_input_t *
