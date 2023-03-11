@@ -344,6 +344,12 @@ public struct Driver {
   /// The mode the API digester should run in.
   let digesterMode: DigesterMode
 
+  /// Path to the OnDiskCAS
+  let casPath: VirtualPath.Handle?
+
+  /// CacheKey for bridging header
+  var bridgingHeaderCacheKey: String?
+
   // FIXME: We should soon be able to remove this from being in the Driver's state.
   // Its only remaining use outside of actual dependency build planning is in
   // command-line input option generation for the explicit main module compile job.
@@ -661,6 +667,16 @@ public struct Driver {
       }
     }
     self.digesterMode = mode
+
+    if let casPathOption = parsedOptions.getLastArgument(.casPath)?.asSingle {
+      do {
+        self.casPath = try VirtualPath.intern(path: casPathOption)
+      } catch {
+        throw Error.invalidArgumentValue(Option.casPath.spelling, casPathOption)
+      }
+    } else {
+      self.casPath = nil
+    }
 
     Self.validateWarningControlArgs(&parsedOptions, diagnosticEngine: diagnosticEngine)
     Self.validateProfilingArgs(&parsedOptions,

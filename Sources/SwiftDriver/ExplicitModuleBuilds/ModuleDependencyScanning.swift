@@ -168,6 +168,13 @@ public extension Driver {
         diagnosticEngine.emit(.warn_scanner_frontend_fallback())
       }
     }
+      if !fallbackToFrontend && parsedOptions.hasArgument(.enableCas) {
+          if let casPathOpt = casPath {
+              try interModuleDependencyOracle.createCAS(path: casPathOpt.description)
+          } else {
+              try interModuleDependencyOracle.createCAS(path: "")
+          }
+      }
     return fallbackToFrontend
   }
 

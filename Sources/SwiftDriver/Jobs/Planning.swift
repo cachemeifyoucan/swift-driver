@@ -654,6 +654,7 @@ extension Driver {
     explicitDependencyBuildPlanner =
       try ExplicitDependencyBuildPlanner(dependencyGraph: dependencyGraph,
                                          toolchain: toolchain,
+                                         dependencyOracle: interModuleDependencyOracle,
                                          integratedDriver: integratedDriver,
                                          supportsExplicitInterfaceBuild:
                                           isFrontendArgSupported(.explicitInterfaceModuleBuild),

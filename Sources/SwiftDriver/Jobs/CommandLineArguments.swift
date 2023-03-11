@@ -195,4 +195,21 @@ extension Array where Element == Job.ArgTemplate {
       }
     }.joined(separator: " ")
   }
+
+  public var stringArray: [String] {
+    return self.map {
+      switch $0 {
+        case .flag(let string):
+          return string.spm_shellEscaped()
+        case .path(let path):
+          return path.name.spm_shellEscaped()
+      case .responseFilePath(let path):
+        return "@\(path.name.spm_shellEscaped())"
+      case let .joinedOptionAndPath(option, path):
+        return option.spm_shellEscaped() + path.name.spm_shellEscaped()
+      case let .squashedArgumentList(option, args):
+        return (option + args.joinedUnresolvedArguments).spm_shellEscaped()
+      }
+    }
+  }
 }

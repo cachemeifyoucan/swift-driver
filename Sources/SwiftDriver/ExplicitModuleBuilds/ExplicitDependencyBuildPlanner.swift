@@ -46,6 +46,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   private let integratedDriver: Bool
   private let mainModuleName: String?
   private let enableCAS: Bool
+  private let swiftScanOracle: InterModuleDependencyOracle
 
   /// Clang PCM names contain a hash of the command-line arguments that were used to build them.
   /// We avoid re-running the hash computation with the use of this cache
@@ -56,11 +57,13 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
 
   public init(dependencyGraph: InterModuleDependencyGraph,
               toolchain: Toolchain,
+              dependencyOracle: InterModuleDependencyOracle,
               integratedDriver: Bool = true,
               supportsExplicitInterfaceBuild: Bool = false,
               enableCAS: Bool = false) throws {
     self.dependencyGraph = dependencyGraph
     self.toolchain = toolchain
+    self.swiftScanOracle = dependencyOracle
     self.integratedDriver = integratedDriver
     self.mainModuleName = dependencyGraph.mainModuleName
     self.reachabilityMap = try dependencyGraph.computeTransitiveClosure()
@@ -277,14 +280,23 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
     // Swift Main Module dependencies are passed encoded in a JSON file as described by
     // SwiftModuleArtifactInfo
     if moduleId.moduleName == mainModuleName {
-      let dependencyFile =
-        try serializeModuleDependencies(for: moduleId,
-                                        swiftDependencyArtifacts: swiftDependencyArtifacts,
-                                        clangDependencyArtifacts: clangDependencyArtifacts)
-      commandLine.appendFlag("-explicit-swift-module-map-file")
-      commandLine.appendPath(dependencyFile)
-      inputs.append(TypedVirtualPath(file: dependencyFile.intern(),
-                                     type: .jsonSwiftArtifacts))
+      if enableCAS {
+        let dependencyFile =
+          try serializeModuleDependenciesToCAS(for: moduleId,
+                                               swiftDependencyArtifacts: swiftDependencyArtifacts,
+                                               clangDependencyArtifacts: clangDependencyArtifacts)
+        commandLine.appendFlag("-explicit-swift-module-map-file")
+        commandLine.appendFlag(dependencyFile)
+      } else {
+        let dependencyFile =
+          try serializeModuleDependencies(for: moduleId,
+                                          swiftDependencyArtifacts: swiftDependencyArtifacts,
+                                          clangDependencyArtifacts: clangDependencyArtifacts)
+        commandLine.appendFlag("-explicit-swift-module-map-file")
+        commandLine.appendPath(dependencyFile)
+        inputs.append(TypedVirtualPath(file: dependencyFile.intern(),
+                                       type: .jsonSwiftArtifacts))
+      }
     }
   }
 
@@ -375,11 +387,16 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   /// Resolve all module dependencies of the main module and add them to the lists of
   /// inputs and command line flags.
   public mutating func resolveMainModuleDependencies(inputs: inout [TypedVirtualPath],
-                                                     commandLine: inout [Job.ArgTemplate]) throws {
+                                                     commandLine: inout [Job.ArgTemplate],
+                                                     bridgingHeaderCacheKey: String?) throws {
     let mainModuleId: ModuleDependencyId = .swift(dependencyGraph.mainModuleName)
     commandLine.appendFlags("-disable-implicit-swift-modules",
                             "-Xcc", "-fno-implicit-modules",
                             "-Xcc", "-fno-implicit-module-maps")
+    if let bridgingHeaderKey = bridgingHeaderCacheKey {
+      commandLine.appendFlag("-bridging-header-pch-key")
+      commandLine.appendFlag(bridgingHeaderKey)
+    }
     try resolveExplicitModuleDependencies(moduleId: mainModuleId,
                                           pcmArgs:
                                             try dependencyGraph.swiftModulePCMArgs(of: mainModuleId),
@@ -434,14 +451,23 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       inputs.append(clangModuleMapPath)
     }
 
-    let dependencyFile =
-    try serializeModuleDependencies(for: mainModuleId,
-                                    swiftDependencyArtifacts: swiftDependencyArtifacts,
-                                    clangDependencyArtifacts: clangDependencyArtifacts)
-    commandLine.appendFlag("-explicit-swift-module-map-file")
-    commandLine.appendPath(dependencyFile)
-    inputs.append(TypedVirtualPath(file: dependencyFile.intern(),
-                                   type: .jsonSwiftArtifacts))
+    if enableCAS {
+      let dependencyFile =
+      try serializeModuleDependenciesToCAS(for: mainModuleId,
+                                           swiftDependencyArtifacts: swiftDependencyArtifacts,
+                                           clangDependencyArtifacts: clangDependencyArtifacts)
+      commandLine.appendFlag("-explicit-swift-module-map-file")
+      commandLine.appendFlag(dependencyFile)
+    } else {
+      let dependencyFile =
+      try serializeModuleDependencies(for: mainModuleId,
+                                      swiftDependencyArtifacts: swiftDependencyArtifacts,
+                                      clangDependencyArtifacts: clangDependencyArtifacts)
+      commandLine.appendFlag("-explicit-swift-module-map-file")
+      commandLine.appendPath(dependencyFile)
+      inputs.append(TypedVirtualPath(file: dependencyFile.intern(),
+                                     type: .jsonSwiftArtifacts))
+    }
   }
 
   /// Store the output file artifacts for a given module in a JSON file, return the file's path.
@@ -456,6 +482,19 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
     encoder.outputFormatting = [.prettyPrinted]
     let contents = try encoder.encode(allDependencyArtifacts)
     return VirtualPath.createUniqueTemporaryFileWithKnownContents(.init("\(moduleId.moduleName)-dependencies.json"), contents)
+  }
+
+  private func serializeModuleDependenciesToCAS(for moduleId: ModuleDependencyId,
+                                           swiftDependencyArtifacts: [SwiftModuleArtifactInfo],
+                                           clangDependencyArtifacts: [ClangModuleArtifactInfo]
+  ) throws -> String {
+    let allDependencyArtifacts: [ModuleDependencyArtifactInfo] =
+      swiftDependencyArtifacts.map {ModuleDependencyArtifactInfo.swift($0)} +
+      clangDependencyArtifacts.map {ModuleDependencyArtifactInfo.clang($0)}
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted]
+    let contents = try encoder.encode(allDependencyArtifacts)
+    return try swiftScanOracle.store(data: contents)
   }
 
   private func getPCMHashParts(pcmArgs: [String], contextHash: String) -> [String] {

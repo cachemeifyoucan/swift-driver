@@ -76,6 +76,7 @@ typedef struct {
 
 typedef struct swiftscan_scan_invocation_s *swiftscan_scan_invocation_t;
 typedef void *swiftscan_scanner_t;
+typedef struct swiftscan_cas_s *swiftscan_cas_t;
 
 //=== libSwiftScan Functions ------------------------------------------------===//
 
@@ -254,6 +255,16 @@ typedef struct {
   void (*swiftscan_scanner_cache_serialize)(swiftscan_scanner_t scanner, const char * path);
   bool (*swiftscan_scanner_cache_load)(swiftscan_scanner_t scanner, const char * path);
   void (*swiftscan_scanner_cache_reset)(swiftscan_scanner_t scanner);
+
+  //=== Scanner CAS Operations ----------------------------------------------===//
+  swiftscan_cas_t (*swiftscan_cas_create)(const char *path);
+  void (*swiftscan_cas_dispose)(swiftscan_cas_t cas);
+  swiftscan_string_ref_t (*swiftscan_compute_cache_key_pch)(swiftscan_cas_t cas,
+                                                            int argc,
+                                                            const char *argv,
+                                                            const char *header);
+  swiftscan_string_ref_t (*swiftscan_cas_store)(swiftscan_cas_t cas,
+                                                uint8_t *data, unsigned size);
 
 } swiftscan_functions_t;
 

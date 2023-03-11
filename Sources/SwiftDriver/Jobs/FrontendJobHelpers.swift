@@ -618,7 +618,7 @@ extension Driver {
     guard var dependencyPlanner = explicitDependencyBuildPlanner else {
       fatalError("No dependency planner in Explicit Module Build mode.")
     }
-    try dependencyPlanner.resolveMainModuleDependencies(inputs: &inputs, commandLine: &commandLine)
+    try dependencyPlanner.resolveMainModuleDependencies(inputs: &inputs, commandLine: &commandLine, bridgingHeaderCacheKey: bridgingHeaderCacheKey)
   }
 
   /// Adds all dependencies required for an explicit module build of the bridging header

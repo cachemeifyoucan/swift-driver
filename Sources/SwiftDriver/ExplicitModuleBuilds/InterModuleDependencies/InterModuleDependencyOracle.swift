@@ -12,6 +12,7 @@
 
 import protocol TSCBasic.FileSystem
 import struct TSCBasic.AbsolutePath
+import struct Foundation.Data
 
 import Dispatch
 
@@ -153,6 +154,27 @@ public class InterModuleDependencyOracle {
     let diags = try swiftScan.queryScannerDiagnostics()
     try swiftScan.resetScannerDiagnostics()
     return diags.isEmpty ? nil : diags
+  }
+
+  public func createCAS(path: String) throws {
+    guard let swiftScan = swiftScanLibInstance else {
+      fatalError("Attempting to reset scanner cache with no scanner instance.")
+    }
+    try swiftScan.createCAS(casPath: path)
+  }
+
+  public func store(data: Data) throws -> String {
+    guard let swiftScan = swiftScanLibInstance else {
+      fatalError("Attempting to reset scanner cache with no scanner instance.")
+    }
+    return try swiftScan.store(data:data)
+  }
+
+  public func computeCacheKeyForPCH(commandLine: [Job.ArgTemplate], header: VirtualPath.Handle) throws -> String {
+    guard let swiftScan = swiftScanLibInstance else {
+      fatalError("Attempting to reset scanner cache with no scanner instance.")
+    }
+    return try swiftScan.computePCHCacheKey(commandLine: commandLine.stringArray, header: header.description)
   }
 
   private var hasScannerInstance: Bool { self.swiftScanLibInstance != nil }
