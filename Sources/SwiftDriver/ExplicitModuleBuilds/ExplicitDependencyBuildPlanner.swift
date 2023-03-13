@@ -489,8 +489,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                            clangDependencyArtifacts: [ClangModuleArtifactInfo]
   ) throws -> String {
     let allDependencyArtifacts: [ModuleDependencyArtifactInfo] =
-      swiftDependencyArtifacts.map {ModuleDependencyArtifactInfo.swift($0)} +
-      clangDependencyArtifacts.map {ModuleDependencyArtifactInfo.clang($0)}
+      swiftDependencyArtifacts.sorted().map {ModuleDependencyArtifactInfo.swift($0)} +
+      clangDependencyArtifacts.sorted().map {ModuleDependencyArtifactInfo.clang($0)}
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted]
     let contents = try encoder.encode(allDependencyArtifacts)

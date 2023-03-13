@@ -123,3 +123,15 @@ public extension BatchScanModuleInfo {
     }
   }
 }
+
+extension SwiftModuleArtifactInfo: Comparable {
+  public static func < (lhs: SwiftModuleArtifactInfo, rhs: SwiftModuleArtifactInfo) -> Bool {
+    return lhs.moduleName < rhs.moduleName
+  }
+}
+
+extension ClangModuleArtifactInfo: Comparable {
+  public static func < (lhs: ClangModuleArtifactInfo, rhs: ClangModuleArtifactInfo) -> Bool {
+    return lhs.moduleName < rhs.moduleName
+  }
+}
