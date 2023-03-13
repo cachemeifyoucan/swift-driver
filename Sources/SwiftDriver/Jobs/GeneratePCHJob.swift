@@ -62,7 +62,9 @@ extension Driver {
     }
     outputs.append(output)
     // Compute the cache key after we have the full command-line
-    self.bridgingHeaderCacheKey = try interModuleDependencyOracle.computeCacheKeyForPCH(commandLine: commandLine, header: input.fileHandle)
+    if parsedOptions.hasArgument(.enableCas) {
+      self.bridgingHeaderCacheKey = try interModuleDependencyOracle.computeCacheKeyForMainOutput(kind: .generatePCH, commandLine: commandLine, input: input.fileHandle)
+    }
 
     return Job(
       moduleName: moduleOutputInfo.name,

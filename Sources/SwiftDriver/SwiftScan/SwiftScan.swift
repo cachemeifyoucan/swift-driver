@@ -376,16 +376,26 @@ internal extension swiftscan_diagnostic_severity_t {
     return try toSwiftString(casid)
   }
 
-  func computePCHCacheKey(commandLine: [String], header: String) throws -> String {
+  private func getJobMainOutputKind(kind: Job.Kind) -> swiftscan_output_kind_t {
+    switch (kind) {
+      case .generatePCH:
+        return SWIFTSCAN_OUTPUT_TYPE_CLANG_PCH
+      default:
+        fatalError("Unsupported")
+    }
+  }
+
+  func computeCacheKeyForMainOuput(kind: Job.Kind, commandLine: [String], input: String) throws -> String {
     guard let scan_cas = self.cas else {
       throw DependencyScanningError.failedToInstantiateCAS
     }
     var casid : swiftscan_string_ref_t = swiftscan_string_ref_t()
     withArrayOfCStrings(commandLine) { commandArray in
-      casid = api.swiftscan_compute_cache_key_pch(scan_cas,
-                                                  Int32(commandLine.count),
-                                                  commandArray,
-                                                  header.cString(using: String.Encoding.utf8))
+      casid = api.swiftscan_compute_cache_key(scan_cas,
+                                              Int32(commandLine.count),
+                                              commandArray,
+                                              input.cString(using: String.Encoding.utf8),
+                                              getJobMainOutputKind(kind: kind))
     }
     return try toSwiftString(casid)
   }
@@ -469,8 +479,8 @@ private extension swiftscan_functions_t {
 
     self.swiftscan_cas_create = try loadOptional("swiftscan_cas_create")
     self.swiftscan_cas_dispose = try loadOptional("swiftscan_cas_dispose")
-    self.swiftscan_compute_cache_key_pch =
-      try loadOptional("swiftscan_compute_cache_key_pch")
+    self.swiftscan_compute_cache_key =
+      try loadOptional("swiftscan_compute_cache_key")
     self.swiftscan_cas_store = try loadOptional("swiftscan_cas_store")
 
     // MARK: Required Methods

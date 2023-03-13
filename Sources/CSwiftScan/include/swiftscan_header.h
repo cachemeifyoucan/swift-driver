@@ -76,7 +76,18 @@ typedef struct {
 
 typedef struct swiftscan_scan_invocation_s *swiftscan_scan_invocation_t;
 typedef void *swiftscan_scanner_t;
+
+//=== CAS/Caching Specification -------------------------------------------===//
 typedef struct swiftscan_cas_s *swiftscan_cas_t;
+
+typedef enum {
+  SWIFTSCAN_OUTPUT_TYPE_OBJECT = 0,
+  SWIFTSCAN_OUTPUT_TYPE_SWIFTMODULE = 1,
+  SWIFTSCAN_OUTPUT_TYPE_SWIFTINTERFACE = 2,
+  SWIFTSCAN_OUTPUT_TYPE_SWIFTPRIAVEINTERFACE = 3,
+  SWIFTSCAN_OUTPUT_TYPE_CLANG_MODULE = 4,
+  SWIFTSCAN_OUTPUT_TYPE_CLANG_PCH = 5
+} swiftscan_output_kind_t;
 
 //=== libSwiftScan Functions ------------------------------------------------===//
 
@@ -259,12 +270,13 @@ typedef struct {
   //=== Scanner CAS Operations ----------------------------------------------===//
   swiftscan_cas_t (*swiftscan_cas_create)(const char *path);
   void (*swiftscan_cas_dispose)(swiftscan_cas_t cas);
-  swiftscan_string_ref_t (*swiftscan_compute_cache_key_pch)(swiftscan_cas_t cas,
-                                                            int argc,
-                                                            const char *argv,
-                                                            const char *header);
   swiftscan_string_ref_t (*swiftscan_cas_store)(swiftscan_cas_t cas,
                                                 uint8_t *data, unsigned size);
+  swiftscan_string_ref_t (*swiftscan_compute_cache_key)(swiftscan_cas_t cas,
+                                                        int argc,
+                                                        const char *argv,
+                                                        const char *input,
+                                                        swiftscan_output_kind_t);
 
 } swiftscan_functions_t;
 
