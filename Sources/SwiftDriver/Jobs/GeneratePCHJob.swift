@@ -26,6 +26,13 @@ extension Driver {
 
     try commandLine.appendLast(.indexStorePath, from: &parsedOptions)
 
+    // TODO: Currently just apply the same additional flag from main compile job. Maybe we need a special bridging header list.
+    if let additionalArgs = swiftCompilerArgsFromDepScan {
+      additionalArgs.forEach {
+        commandLine.appendFlag($0)
+      }
+    }
+
     // TODO: Should this just be pch output with extension changed?
     if parsedOptions.hasArgument(.serializeDiagnostics), let outputDirectory = parsedOptions.getLastArgument(.pchOutputDir)?.asSingle {
       commandLine.appendFlag(.serializeDiagnosticsPath)
