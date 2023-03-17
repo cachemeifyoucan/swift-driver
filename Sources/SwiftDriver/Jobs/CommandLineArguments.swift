@@ -200,15 +200,15 @@ extension Array where Element == Job.ArgTemplate {
     return self.map {
       switch $0 {
         case .flag(let string):
-          return string.spm_shellEscaped()
+          return string
         case .path(let path):
-          return path.name.spm_shellEscaped()
+          return path.name
       case .responseFilePath(let path):
-        return "@\(path.name.spm_shellEscaped())"
+        return "@\(path.name)"
       case let .joinedOptionAndPath(option, path):
-        return option.spm_shellEscaped() + path.name.spm_shellEscaped()
+        return option + path.name
       case let .squashedArgumentList(option, args):
-        return (option + args.joinedUnresolvedArguments).spm_shellEscaped()
+        return option + args.joinedUnresolvedArguments
       }
     }
   }
