@@ -151,7 +151,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       // Resolve all dependency module inputs for this Swift module
       try resolveExplicitModuleDependencies(moduleId: moduleId, pcmArgs: pcmArgs,
                                             inputs: &inputs,
-                                            commandLine: &commandLine)
+                                            commandLine: &commandLine,
+                                            isMainModule: false)
 
       // Update the clangPCMSetMap for each Clang dependency of this module
       try updateClangPCMArgSetMap(for: moduleId, clangPCMSetMap: &clangPCMSetMap)
@@ -220,7 +221,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         // Resolve all dependency module inputs for this Clang module
         try resolveExplicitModuleDependencies(moduleId: moduleId, pcmArgs: pcmArgs,
                                               inputs: &inputs,
-                                              commandLine: &commandLine)
+                                              commandLine: &commandLine,
+                                              isMainModule: false)
 
         let moduleMapPath = moduleDetails.moduleMapPath.path
         let modulePCMPath = moduleInfo.modulePath
@@ -250,7 +252,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   /// to use explicitly-built module dependencies.
   private mutating func resolveExplicitModuleDependencies(moduleId: ModuleDependencyId, pcmArgs: [String],
                                                           inputs: inout [TypedVirtualPath],
-                                                          commandLine: inout [Job.ArgTemplate]) throws {
+                                                          commandLine: inout [Job.ArgTemplate], isMainModule: Bool) throws {
     // Prohibit the frontend from implicitly building textual modules into binary modules.
     var swiftDependencyArtifacts: [SwiftModuleArtifactInfo] = []
     var clangDependencyArtifacts: [ClangModuleArtifactInfo] = []
@@ -279,7 +281,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
 
     // Swift Main Module dependencies are passed encoded in a JSON file as described by
     // SwiftModuleArtifactInfo
-    if moduleId.moduleName == mainModuleName {
+    if isMainModule {
       if enableCAS {
         let dependencyFile =
           try serializeModuleDependenciesToCAS(for: moduleId,
@@ -401,7 +403,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                           pcmArgs:
                                             try dependencyGraph.swiftModulePCMArgs(of: mainModuleId),
                                           inputs: &inputs,
-                                          commandLine: &commandLine)
+                                          commandLine: &commandLine,
+                                          isMainModule: true)
   }
 
   /// Resolve all module dependencies of the main module and add them to the lists of
