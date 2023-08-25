@@ -138,7 +138,7 @@ extension Driver {
       if let value = parsedOptions.getLastArgument(rootArg)?.asSingle,
           isFrontendArgSupported(rootArg) {
         commandLine.appendFlag(rootArg.spelling)
-        commandLine.appendPath(.init(value))
+        try addPathArgument(value, to: &commandLine)
       }
 
       if let value = parsedOptions.getLastArgument(versionArg)?.asSingle,
@@ -704,5 +704,37 @@ extension Driver {
   /// such as Swift modules built from .swiftmodule files and Clang PCMs.
   public func isExplicitMainModuleJob(job: Job) -> Bool {
     return job.moduleName == moduleOutputInfo.name
+  }
+
+  /// Helper function to add path to commandLine. Function will validate the path, and remap the path if needed.
+  public func addPathArgument(_ path: VirtualPath, to commandLine: inout [Job.ArgTemplate]) throws {
+    // TODO: add remap logic here
+    commandLine.appendPath(path)
+  }
+
+  public func addPathArgument(_ argument: String, to commandLine: inout [Job.ArgTemplate]) throws {
+    let path = try VirtualPath(path: argument)
+    try addPathArgument(path, to: &commandLine)
+  }
+
+  /// Helper function to add last argument with path to command-line.
+  public func addLastArgumentWithPath(_ options: Option...,
+                                      from parsedOptions: inout ParsedOptions,
+                                      to commandLine: inout [Job.ArgTemplate]) throws {
+    guard let parsedOption = parsedOptions.last(for: options) else {
+      return
+    }
+    commandLine.appendFlag(parsedOption.option)
+    try addPathArgument(parsedOption.argument.asSingle, to: &commandLine)
+  }
+
+  /// Helper function to add all arguments with path to command-line.
+  public func addAllArgumentsWithPath(_ options: Option...,
+                                      from parsedOptions: inout ParsedOptions,
+                                      to commandLine: inout [Job.ArgTemplate]) throws {
+    for matching in parsedOptions.arguments(for: options) {
+      commandLine.appendFlag(matching.option)
+      try addPathArgument(matching.argument.asSingle, to: &commandLine)
+    }
   }
 }
