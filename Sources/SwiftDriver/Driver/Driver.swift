@@ -271,6 +271,35 @@ public struct Driver {
   let enableCaching: Bool
   let useClangIncludeTree: Bool
 
+  /// Scanner prefix mapping.
+  let scannerPrefixMap: [AbsolutePath: AbsolutePath]
+  let scannerPrefixMapSDK: AbsolutePath?
+  let scannerPrefixMapToolchain: AbsolutePath?
+  lazy var prefixMapping: [(AbsolutePath, AbsolutePath)] = {
+    var mapping: [(AbsolutePath, AbsolutePath)] = scannerPrefixMap.map {
+      return ($0.key, $0.value)
+    }
+    do {
+      guard isFrontendArgSupported(.scannerPrefixMap) else {
+        return []
+      }
+      if let sdkMapping = scannerPrefixMapSDK,
+         let sdkPath = absoluteSDKPath {
+        mapping.append((sdkPath, sdkMapping))
+      }
+      if let toolchainMapping = scannerPrefixMapToolchain {
+        let toolchainPath = try toolchain.executableDir.parentDirectory // usr
+                                                       .parentDirectory // toolchain
+        mapping.append((toolchainPath, toolchainMapping))
+      }
+      // The mapping needs to be sorted so the mapping is determinisitic.
+      // The sorting order is reversed so /tmp/tmp is preferred over /tmp in remapping.
+      return mapping.sorted { $0.0 > $1.0 }
+    } catch {
+      return mapping.sorted { $0.0 > $1.0 }
+    }
+  }()
+
   /// Code & data for incremental compilation. Nil if not running in incremental mode.
   /// Set during planning because needs the jobs to look at outputs.
   @_spi(Testing) public private(set) var incrementalCompilationState: IncrementalCompilationState? = nil
@@ -594,6 +623,17 @@ public struct Driver {
     let cachingEnableOverride = parsedOptions.hasArgument(.driverExplicitModuleBuild) && env.keys.contains("SWIFT_ENABLE_CACHING")
     self.enableCaching = parsedOptions.hasArgument(.cacheCompileJob) || cachingEnableOverride
     self.useClangIncludeTree = enableCaching && env.keys.contains("SWIFT_CACHING_USE_INCLUDE_TREE")
+    self.scannerPrefixMap = try Self.computeScanningPrefixMapper(&parsedOptions)
+    if let sdkMapping =  parsedOptions.getLastArgument(.scannerPrefixMapSdk)?.asSingle {
+      self.scannerPrefixMapSDK = try AbsolutePath(validating: sdkMapping)
+    } else {
+      self.scannerPrefixMapSDK = nil
+    }
+    if let toolchainMapping = parsedOptions.getLastArgument(.scannerPrefixMapToolchain)?.asSingle {
+      self.scannerPrefixMapToolchain = try AbsolutePath(validating: toolchainMapping)
+    } else {
+      self.scannerPrefixMapToolchain = nil
+    }
 
     // Compute the working directory.
     workingDirectory = try parsedOptions.getLastArgument(.workingDirectory).map { workingDirectoryArg in
@@ -3489,5 +3529,19 @@ extension Driver {
       options.append((String(pluginArg[0]), String(pluginArg[1])))
     }
     return options
+  }
+
+  static func computeScanningPrefixMapper(_ parsedOptions: inout ParsedOptions) throws -> [AbsolutePath: AbsolutePath] {
+    var mapping: [AbsolutePath: AbsolutePath] = [:]
+    for opt in parsedOptions.arguments(for: .scannerPrefixMap) {
+      let pluginArg = opt.argument.asSingle.split(separator: "=", maxSplits: 1)
+      if pluginArg.count != 2 {
+        throw Error.invalidArgumentValue(Option.scannerPrefixMap.spelling, opt.argument.asSingle)
+      }
+      let key = try AbsolutePath(validating: String(pluginArg[0]))
+      let value = try AbsolutePath(validating: String(pluginArg[1]))
+      mapping[key] = value
+    }
+    return mapping
   }
 }

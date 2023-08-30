@@ -67,7 +67,7 @@ extension Driver {
     outputs.append(output)
 
     inputs.append(input)
-    commandLine.appendPath(input.file)
+    try addPathArgument(input.file, to: &commandLine, remap: true)
 
     return Job(
       moduleName: moduleOutputInfo.name,

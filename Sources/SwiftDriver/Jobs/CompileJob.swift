@@ -171,7 +171,7 @@ extension Driver {
         }
       } else {
         if !useInputFileList {
-          commandLine.appendPath(input.file)
+          try addPathArgument(input.file, to: &commandLine, remap: true)
         }
       }
 
