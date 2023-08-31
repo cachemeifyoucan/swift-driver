@@ -350,6 +350,7 @@ extension Driver {
       try commandLine.appendAll(.casPluginOption, from: &parsedOptions)
       try commandLine.appendLast(.cacheRemarks, from: &parsedOptions)
     }
+    addCacheReplayMapping(to: &commandLine)
     if useClangIncludeTree {
       commandLine.appendFlag(.clangIncludeTree)
     }
@@ -780,6 +781,15 @@ extension Driver {
                                                to commandLine: inout [Job.ArgTemplate]) throws {
     for matching in parsedOptions.arguments(for: options) {
       try addPathOption(matching, to: &commandLine)
+    }
+  }
+
+  public mutating func addCacheReplayMapping(to commandLine: inout [Job.ArgTemplate]) {
+    if enableCaching && isFrontendArgSupported(.scannerPrefixMap) {
+      for (key, value) in prefixMapping {
+        commandLine.appendFlag("-cache-replay-prefix-map")
+        commandLine.appendFlag(value.pathString + "=" + key.pathString)
+      }
     }
   }
 }

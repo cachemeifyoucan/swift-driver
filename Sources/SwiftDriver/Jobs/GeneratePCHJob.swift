@@ -36,6 +36,8 @@ extension Driver {
       try addGeneratePCHFlags(commandLine: &commandLine, inputs: &inputs)
     }
 
+    addCacheReplayMapping(to: &commandLine)
+
     // TODO: Should this just be pch output with extension changed?
     if parsedOptions.hasArgument(.serializeDiagnostics), let outputDirectory = parsedOptions.getLastArgument(.pchOutputDir)?.asSingle {
       commandLine.appendFlag(.serializeDiagnosticsPath)
