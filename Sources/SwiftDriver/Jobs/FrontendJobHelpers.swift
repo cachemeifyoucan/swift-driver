@@ -428,7 +428,7 @@ extension Driver {
     // The pch input file (the bridging header) is added as last inputs to the job.
     guard let inputFile = pchJob.inputs.last else { assertionFailure("no input files from pch job"); return }
     assert(inputFile.type == .objcHeader, "Expect objc header input type")
-    let mappedInput = try remapPath(virtual: inputFile.file).intern()
+    let mappedInput = remapPath(inputFile.file).intern()
     let bridgingHeaderCacheKey = try interModuleDependencyOracle.computeCacheKeyForOutput(kind: .pch,
                                                                                           commandLine: pchJob.commandLine,
                                                                                           input: mappedInput)
@@ -673,7 +673,7 @@ extension Driver {
     } else {
       entryInput = inputFiles[0].fileHandle
     }
-    let inputEntry = enableCaching ? try remapPath(virtual: VirtualPath.lookup(entryInput)).intern() : entryInput
+    let inputEntry = enableCaching ? remapPath(VirtualPath.lookup(entryInput)).intern() : entryInput
     entries[inputEntry, default: [:]][output.type] = output.fileHandle
   }
 
@@ -732,13 +732,13 @@ extension Driver {
     return path
   }
 
-  private mutating func remapPath(virtual path: VirtualPath) throws -> VirtualPath {
+  public mutating func remapPath(_ path: VirtualPath) -> VirtualPath {
     guard !prefixMapping.isEmpty,
       let absPath = getAbsolutePathFromVirtualPath(path) else {
       return path
     }
     let mappedPath = remapPath(absolute: absPath)
-    return try VirtualPath(path: mappedPath.pathString)
+    return try! VirtualPath(path: mappedPath.pathString)
   }
 
   /// Helper function to add path to commandLine. Function will validate the path, and remap the path if needed.
@@ -747,7 +747,7 @@ extension Driver {
       commandLine.appendPath(path)
       return
     }
-    let mappedPath = try remapPath(virtual: path)
+    let mappedPath = remapPath(path)
     commandLine.appendPath(mappedPath)
   }
 
