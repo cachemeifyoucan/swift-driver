@@ -305,12 +305,14 @@ extension Driver {
       commandLine.appendFlag(.Xcc)
       commandLine.appendFlag(.workingDirectory)
       commandLine.appendFlag(.Xcc)
-      commandLine.appendPath(.absolute(workingDirectory))
+      try addPathArgument(.absolute(workingDirectory), to: &commandLine, remap: jobNeedPathRemap)
     }
 
     // Resource directory.
-    commandLine.appendFlag(.resourceDir)
-    commandLine.appendPath(VirtualPath.lookup(frontendTargetInfo.runtimeResourcePath.path))
+    try addPathOption(option: .resourceDir,
+                      path: VirtualPath.lookup(frontendTargetInfo.runtimeResourcePath.path),
+                      to: &commandLine,
+                      remap: jobNeedPathRemap)
 
     if self.useStaticResourceDir {
       commandLine.appendFlag("-use-static-resource-dir")
