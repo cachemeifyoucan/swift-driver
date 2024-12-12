@@ -371,10 +371,10 @@ final class CachingBuildTests: XCTestCase {
       let modulePath: AbsolutePath = path.appending(component: "testModuleOnlyJob.swiftmodule")
       let sdkArgumentsForTesting = (try? Driver.sdkArgumentsForTesting()) ?? []
       var driver = try Driver(args: ["swiftc",
-                                     "-module-name", "Test",
+                                     "-module-name", "ModuleOnly",
                                      "-I", cHeadersPath.nativePathString(escaped: true),
                                      "-I", swiftModuleInterfacesPath.nativePathString(escaped: true),
-				     "-I", stdlibPath.nativePathString(escaped: true),
+                                     "-I", stdlibPath.nativePathString(escaped: true),
                                      "-I", shimsPath.nativePathString(escaped: true),
                                      "-emit-module-interface-path", swiftInterfacePath.nativePathString(escaped: true),
                                      "-emit-private-module-interface-path", privateSwiftInterfacePath.nativePathString(escaped: true),
@@ -427,7 +427,7 @@ final class CachingBuildTests: XCTestCase {
                                      "-module-name", "Test",
                                      "-I", cHeadersPath.nativePathString(escaped: true),
                                      "-I", swiftModuleInterfacesPath.nativePathString(escaped: true),
-				     "-I", stdlibPath.nativePathString(escaped: true),
+                                     "-I", stdlibPath.nativePathString(escaped: true),
                                      "-I", shimsPath.nativePathString(escaped: true),
                                      "-emit-module-path", modulePath.nativePathString(escaped: true),
                                      "-emit-module-interface-path", swiftInterfacePath.nativePathString(escaped: true),
@@ -435,8 +435,8 @@ final class CachingBuildTests: XCTestCase {
                                      "-explicit-module-build", "-experimental-emit-module-separately", "-Rcache-compile-job",
                                      "-enable-library-evolution", "-O",
                                      "-cache-compile-job", "-cas-path", casPath.nativePathString(escaped: true),
-				     "-Xfrontend", "-disable-implicit-concurrency-module-import",
-				     "-Xfrontend", "-disable-implicit-string-processing-module-import",
+                                     "-Xfrontend", "-disable-implicit-concurrency-module-import",
+                                     "-Xfrontend", "-disable-implicit-string-processing-module-import",
                                      main.nativePathString(escaped: true)] + sdkArgumentsForTesting,
                               env: ProcessEnv.vars,
                               interModuleDependencyOracle: dependencyOracle)
