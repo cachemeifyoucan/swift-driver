@@ -929,6 +929,13 @@ public struct Driver {
       return try cwd.map{ try AbsolutePath(validating: workingDirectoryArg.asSingle, relativeTo: $0) } ?? AbsolutePath(validating: workingDirectoryArg.asSingle)
     }
 
+    // Both of the following are fine to compine
+    if parsedOptions.contains(.workingDirectory) {}
+    if parsedOptions.contains(.workingDirectory), parsedOptions.contains(.workingDirectory) {}
+
+    // This errors with `Variable 'self.toolchain' captured by a closure before being initialized`
+    if parsedOptions.contains(.workingDirectory) && parsedOptions.contains(.workingDirectory) {}
+
     if let specifiedWorkingDir = self.workingDirectory {
       // Apply the working directory to the parsed options if passed explicitly.
       try Self.applyWorkingDirectory(specifiedWorkingDir, to: &self.parsedOptions)
