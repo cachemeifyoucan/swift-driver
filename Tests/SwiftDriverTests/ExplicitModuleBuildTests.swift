@@ -647,6 +647,49 @@ final class ExplicitModuleBuildTests: XCTestCase {
     }
   }
 
+  func testExplicitLibraryLevel() throws {
+    try withTemporaryDirectory { path in
+      let (_, _, toolchain, _) = try getDriverArtifactsForScanning()
+
+      let main = path.appending(component: "testExplicitLibraryLevel.swift")
+      try localFileSystem.writeFileContents(main, bytes:
+        """
+        import E;
+        """
+      )
+
+      let swiftModuleInterfacesPath: AbsolutePath =
+        try testInputsPath.appending(component: "ExplicitModuleBuilds")
+          .appending(component: "Swift")
+      let sdkArgumentsForTesting = (try? Driver.sdkArgumentsForTesting()) ?? []
+
+      let dependencyOracle = InterModuleDependencyOracle()
+      let scanLibPath = try XCTUnwrap(toolchain.lookupSwiftScanLib())
+      try dependencyOracle.verifyOrCreateScannerInstance(swiftScanLibPath: scanLibPath)
+      guard try dependencyOracle.supportsLibraryLevel() else {
+        throw XCTSkip("libSwiftScan does not support library level reporting.")
+      }
+
+      let args = ["swiftc",
+                  "-I", swiftModuleInterfacesPath.nativePathString(escaped: false),
+                  "-explicit-module-build",
+                  "-Xfrontend", "-disable-implicit-concurrency-module-import",
+                  "-Xfrontend", "-disable-implicit-string-processing-module-import",
+                  main.nativePathString(escaped: false)] + sdkArgumentsForTesting
+      var driver = try Driver(args: args)
+      let _ = try driver.planBuild()
+      let dependencyGraph = try XCTUnwrap(driver.intermoduleDependencyGraph)
+
+      // The main module should have a library level reported.
+      XCTAssertNotNil(dependencyGraph.mainModule.libraryLevel)
+
+      // All modules in the graph should have a non-nil library level.
+      for (_, moduleInfo) in dependencyGraph.modules {
+        XCTAssertNotNil(moduleInfo.libraryLevel)
+      }
+    }
+  }
+
   /// Test generation of explicit module build jobs for dependency modules when the driver
   /// is invoked with -explicit-module-build
   func testExplicitModuleBuildJobs() throws {

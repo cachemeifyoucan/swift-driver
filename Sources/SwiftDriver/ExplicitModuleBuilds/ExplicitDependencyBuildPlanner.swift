@@ -386,7 +386,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
           SwiftModuleArtifactInfo(name: dependencyId.moduleName,
                                   modulePath: TextualVirtualPath(path: swiftModulePath.fileHandle),
                                   isFramework: isFramework,
-                                  moduleCacheKey: swiftModuleDetails.moduleCacheKey))
+                                  moduleCacheKey: swiftModuleDetails.moduleCacheKey,
+                                  libraryLevel: dependencyInfo.libraryLevel))
       case .clang:
         let dependencyInfo = try dependencyGraph.moduleInfo(of: dependencyId)
         let dependencyClangModuleDetails =
@@ -397,8 +398,10 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                   modulePath: TextualVirtualPath(path: dependencyInfo.modulePath.path),
                                   moduleMapPath: dependencyClangModuleDetails.moduleMapPath,
                                   moduleCacheKey: dependencyClangModuleDetails.moduleCacheKey,
-                                  isBridgingHeaderDependency: bridgingHeaderDeps?.contains(dependencyId) ?? true))
+                                  isBridgingHeaderDependency: bridgingHeaderDeps?.contains(dependencyId) ?? true,
+                                  libraryLevel: dependencyInfo.libraryLevel))
       case .swiftPrebuiltExternal:
+        let dependencyInfo = try dependencyGraph.moduleInfo(of: dependencyId)
         let prebuiltModuleDetails = try dependencyGraph.swiftPrebuiltDetails(of: dependencyId)
         let compiledModulePath = prebuiltModuleDetails.compiledModulePath
         let isFramework = prebuiltModuleDetails.isFramework ?? false
@@ -411,7 +414,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                   modulePath: TextualVirtualPath(path: swiftModulePath.fileHandle),
                                   headerDependencies: prebuiltModuleDetails.headerDependencyPaths,
                                   isFramework: isFramework,
-                                  moduleCacheKey: prebuiltModuleDetails.moduleCacheKey))
+                                  moduleCacheKey: prebuiltModuleDetails.moduleCacheKey,
+                                  libraryLevel: dependencyInfo.libraryLevel))
     }
   }
 
@@ -630,7 +634,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                                       sourceInfoPath: nil,
                                                       headerDependencies: info.prebuiltHeaderDependencyPaths,
                                                       isFramework: info.isFramework,
-                                                      moduleCacheKey: info.moduleCacheKey)
+                                                      moduleCacheKey: info.moduleCacheKey,
+                                                      libraryLevel: info.libraryLevel)
         return ModuleDependencyArtifactInfo.swift(updatedInfo)
       } +
       clangDependencyArtifacts.sorted().map { info in
@@ -641,7 +646,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                                       modulePath: abstractPath(info.moduleName, suffix: ".pcm"),
                                                       moduleMapPath: info.clangModuleMapPath,
                                                       moduleCacheKey: info.clangModuleCacheKey,
-                                                      isBridgingHeaderDependency: info.isBridgingHeaderDependency)
+                                                      isBridgingHeaderDependency: info.isBridgingHeaderDependency,
+                                                      libraryLevel: info.libraryLevel)
         return ModuleDependencyArtifactInfo.clang(updatedInfo)
       }
     let encoder = JSONEncoder()

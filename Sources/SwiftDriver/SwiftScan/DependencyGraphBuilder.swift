@@ -126,7 +126,9 @@ private extension SwiftScan {
     let details = try constructModuleDetails(from: moduleDetailsRef,
                                              moduleAliases: moduleAliases)
 
-    return (moduleId, ModuleInfo(modulePath: modulePath, sourceFiles: sourceFiles,
+    return (moduleId, ModuleInfo(modulePath: modulePath,
+                                 libraryLevel: getLibraryLevel(from: moduleInfoRef),
+                                 sourceFiles: sourceFiles,
                                  directDependencies: directDependencies,
                                  linkLibraries: linkLibraries,
                                  importInfos: importInfos,
@@ -405,7 +407,25 @@ internal extension SwiftScan {
   }
 }
 
+extension LibraryLevel {
+  init?(_ level: swiftscan_library_level_t) {
+    switch level {
+    case SWIFTSCAN_LIBRARY_LEVEL_API: self = .api
+    case SWIFTSCAN_LIBRARY_LEVEL_SPI: self = .spi
+    case SWIFTSCAN_LIBRARY_LEVEL_IPI: self = .ipi
+    case SWIFTSCAN_LIBRARY_LEVEL_OTHER: self = .other
+    default: return nil
+    }
+  }
+}
+
 private extension SwiftScan {
+  /// Read the library level from a module info reference, if the API supports it.
+  func getLibraryLevel(from moduleInfoRef: swiftscan_dependency_info_t) -> LibraryLevel? {
+    guard supportsLibraryLevel else { return nil }
+    return LibraryLevel(api.swiftscan_module_info_get_library_level(moduleInfoRef))
+  }
+
   /// From a `swiftscan_module_details_t` reference, extract a `TextualVirtualPath?` detail using the specified API query
   func getOptionalPathDetail(from detailsRef: swiftscan_module_details_t,
                              using query: (swiftscan_module_details_t)

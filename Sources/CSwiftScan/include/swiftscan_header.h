@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 #define SWIFTSCAN_VERSION_MAJOR 2
-#define SWIFTSCAN_VERSION_MINOR 2
+#define SWIFTSCAN_VERSION_MINOR 3
 
 //=== Public Scanner Data Types -------------------------------------------===//
 
@@ -60,6 +60,12 @@ typedef enum {
   SWIFTSCAN_ACCESS_LEVEL_PACKAGE = 3,
   SWIFTSCAN_ACCESS_LEVEL_PUBLIC = 4
 } swiftscan_access_level_t;
+typedef enum {
+  SWIFTSCAN_LIBRARY_LEVEL_OTHER = 0,
+  SWIFTSCAN_LIBRARY_LEVEL_IPI = 1,
+  SWIFTSCAN_LIBRARY_LEVEL_SPI = 2,
+  SWIFTSCAN_LIBRARY_LEVEL_API = 3
+} swiftscan_library_level_t;
 typedef struct {
   swiftscan_diagnostic_info_t *diagnostics;
   size_t count;
@@ -140,6 +146,10 @@ typedef struct {
   (*swiftscan_import_info_get_identifier)(swiftscan_import_info_t info);
   swiftscan_access_level_t
   (*swiftscan_import_info_get_access_level)(swiftscan_import_info_t info);
+
+  //=== Module Library Level Functions ------------------------------------===//
+  swiftscan_library_level_t
+  (*swiftscan_module_info_get_library_level)(swiftscan_dependency_info_t);
 
   //=== Dependency Module Info Details Functions ----------------------------===//
   swiftscan_dependency_info_kind_t

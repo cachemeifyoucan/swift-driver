@@ -8519,7 +8519,7 @@ final class SwiftDriverTests: XCTestCase {
         "// swift-module-flags: -target arm64e-apple-macos12.0"
       )
       let flags = try getAllModuleFlags(VirtualPath.absolute(file))
-      XCTAssertEqual(try getLibraryLevel(flags), .unspecified)
+      XCTAssertEqual(try getLibraryLevel(flags), nil)
     }
   }
 
