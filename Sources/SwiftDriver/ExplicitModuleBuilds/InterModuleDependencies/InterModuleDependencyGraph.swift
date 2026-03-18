@@ -83,6 +83,14 @@ public struct BridgingHeader: Codable, Hashable {
   var moduleDependencies: [String]
 }
 
+/// The library level of a module dependency.
+public enum LibraryLevel: String, Codable, Hashable {
+  case api
+  case spi
+  case ipi
+  case other
+}
+
 /// Linked Library
 public struct LinkLibraryInfo: Codable, Hashable {
   public var linkName: String
@@ -161,8 +169,6 @@ public struct SwiftModuleDetails: Codable, Hashable {
   /// Chained bridging header content
   public var chainedBridgingHeaderContent: String?
 }
-
-/// Details specific to Swift externally-pre-built modules.
 public struct SwiftPrebuiltExternalModuleDetails: Codable, Hashable {
   /// The path to the already-compiled module that must be used instead of
   /// generating a job to build this module.
@@ -206,6 +212,9 @@ public struct ModuleInfo: Codable, Hashable {
   /// The path for the module.
   public var modulePath: TextualVirtualPath
 
+  /// The library level of the module.
+  public var libraryLevel: LibraryLevel?
+
   /// The source files used to build this module.
   public var sourceFiles: [String]?
 
@@ -238,12 +247,14 @@ public struct ModuleInfo: Codable, Hashable {
   }
 
   public init(modulePath: TextualVirtualPath,
+              libraryLevel: LibraryLevel?,
               sourceFiles: [String]?,
               directDependencies: [ModuleDependencyId]?,
               linkLibraries: [LinkLibraryInfo]?,
               importInfos: [ImportInfo]?,
               details: Details) {
     self.modulePath = modulePath
+    self.libraryLevel = libraryLevel
     self.sourceFiles = sourceFiles
     self.directDependencies = directDependencies
     self.linkLibraries = linkLibraries

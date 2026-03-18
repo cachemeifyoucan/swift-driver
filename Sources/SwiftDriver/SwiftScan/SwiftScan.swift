@@ -315,6 +315,10 @@ private extension String {
            api.swiftscan_import_info_get_access_level != nil
   }
 
+  @_spi(Testing) public var supportsLibraryLevel : Bool {
+    return api.swiftscan_module_info_get_library_level != nil
+  }
+
   internal func mapToDriverDiagnosticPayload(_ diagnosticSetRef: UnsafeMutablePointer<swiftscan_diagnostic_set_t>) throws -> [ScannerDiagnosticPayload] {
     var result: [ScannerDiagnosticPayload] = []
     let diagnosticRefArray = Array(UnsafeBufferPointer(start: diagnosticSetRef.pointee.diagnostics,
@@ -555,6 +559,8 @@ private extension swiftscan_functions_t {
     self.swiftscan_import_info_get_source_locations = loadOptional("swiftscan_import_info_get_source_locations")
     self.swiftscan_import_info_get_identifier = loadOptional("swiftscan_import_info_get_identifier")
     self.swiftscan_import_info_get_access_level = loadOptional("swiftscan_import_info_get_access_level")
+
+    self.swiftscan_module_info_get_library_level = loadOptional("swiftscan_module_info_get_library_level")
 
     // Swift Overlay Dependencies
     self.swiftscan_swift_textual_detail_get_swift_overlay_dependencies =

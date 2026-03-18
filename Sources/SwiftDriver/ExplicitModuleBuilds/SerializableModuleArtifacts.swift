@@ -30,10 +30,13 @@
   public let isFramework: Bool
   /// The cache key for the module.
   public let moduleCacheKey: String?
+  /// The library level of the module (e.g. "api", "spi").
+  public let libraryLevel: LibraryLevel?
 
   init(name: String, modulePath: TextualVirtualPath, docPath: TextualVirtualPath? = nil,
        sourceInfoPath: TextualVirtualPath? = nil, headerDependencies: [TextualVirtualPath]? = nil,
-       isFramework: Bool = false, moduleCacheKey: String? = nil) {
+       isFramework: Bool = false, moduleCacheKey: String? = nil,
+       libraryLevel: LibraryLevel? = nil) {
     self.moduleName = name
     self.modulePath = modulePath
     self.docPath = docPath
@@ -41,6 +44,7 @@
     self.prebuiltHeaderDependencyPaths = headerDependencies
     self.isFramework = isFramework
     self.moduleCacheKey = moduleCacheKey
+    self.libraryLevel = libraryLevel
   }
 }
 
@@ -62,15 +66,19 @@
   public let isBridgingHeaderDependency: Bool
   /// The cache key for the module.
   public let clangModuleCacheKey: String?
+  /// The library level of the module (e.g. "api", "spi").
+  public let libraryLevel: LibraryLevel?
 
   init(name: String, modulePath: TextualVirtualPath, moduleMapPath: TextualVirtualPath,
-       moduleCacheKey: String? = nil, isBridgingHeaderDependency: Bool = true) {
+       moduleCacheKey: String? = nil, isBridgingHeaderDependency: Bool = true,
+       libraryLevel: LibraryLevel? = nil) {
     self.moduleName = name
     self.clangModulePath = modulePath
     self.clangModuleMapPath = moduleMapPath
     self.isFramework = false
     self.isBridgingHeaderDependency = isBridgingHeaderDependency
     self.clangModuleCacheKey = moduleCacheKey
+    self.libraryLevel = libraryLevel
   }
 }
 

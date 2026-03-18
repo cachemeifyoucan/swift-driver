@@ -65,18 +65,11 @@ func getModuleFlags(_ path: VirtualPath,
   return false
 }
 
-@_spi(Testing) public enum LibraryLevel: String, Codable {
-  case api
-  case spi
-  case unknown
-  case unspecified
-}
-
-@_spi(Testing) public func getLibraryLevel(_ flags: [String]) throws -> LibraryLevel {
+@_spi(Testing) public func getLibraryLevel(_ flags: [String]) throws -> LibraryLevel? {
   if let idx = flags.firstIndex(of: "-library-level"), idx + 1 < flags.count {
-    return LibraryLevel(rawValue: flags[idx + 1]) ?? .unknown
+    return LibraryLevel(rawValue: flags[idx + 1]) ?? .other
   }
-  return .unspecified
+  return nil
 }
 
 enum ErrKind: String {
@@ -420,7 +413,7 @@ public class SwiftAdopter: Codable {
     var issues: [AdopterIssueKind] = []
     let flags = try getAllModuleFlags(VirtualPath.absolute(interface))
     let libLevel = try getLibraryLevel(flags)
-    if libLevel == .unspecified {
+    if libLevel == nil {
       issues.append(.libraryLevelMissing)
     }
     if libLevel == .spi && !isPrivate {
