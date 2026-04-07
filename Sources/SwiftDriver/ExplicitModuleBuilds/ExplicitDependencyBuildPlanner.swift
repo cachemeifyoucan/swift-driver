@@ -113,9 +113,13 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
     } else {
       self.chainedBridgingHeaderFile = nil
     }
+
+    // Use prefix map only when caching and prefix map are both enabled.
+    let shouldUseAbstractPath = cas != nil && !prefixMap.isEmpty
     self.resolvedMainModuleDependenciesArgs = try Self.resolveMainModuleDependencies(in: dependencyGraph,
                                                                                      reachabilityMap: reachabilityMap,
-                                                                                     cas: cas)
+                                                                                     cas: cas,
+                                                                                     useAbstractPath: shouldUseAbstractPath)
     self.resolvedPCHModuleDependenciesArgs = try Self.resolveBridgingHeaderDependencies(in: dependencyGraph,
                                                                                         reachabilityMap: reachabilityMap,
                                                                                         cas: cas)
@@ -191,6 +195,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                                  in: dependencyGraph,
                                                  reachabilityMap: reachabilityMap,
                                                  cas: cas,
+                                                 useAbstractPath: false,
                                                  inputs: &inputs,
                                                  commandLine: &commandLine)
 
@@ -269,7 +274,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       // Resolve all dependency module inputs for this Clang module
       try Self.resolveExplicitModuleDependencies(moduleId: moduleId, in: dependencyGraph,
                                                  reachabilityMap: reachabilityMap,
-                                                 cas: cas, inputs: &inputs,
+                                                 cas: cas, useAbstractPath: false, inputs: &inputs,
                                                  commandLine: &commandLine)
 
       let moduleMapPath = TypedVirtualPath(file: moduleDetails.moduleMapPath.path, type: .clangModuleMap)
@@ -317,6 +322,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                                         in dependencyGraph: InterModuleDependencyGraph,
                                                         reachabilityMap: [ModuleDependencyId : Set<ModuleDependencyId>],
                                                         cas: SwiftScanCAS?,
+                                                        useAbstractPath: Bool,
                                                         inputs: inout [TypedVirtualPath],
                                                         commandLine: inout [Job.ArgTemplate]) throws {
     // Prohibit the frontend from implicitly building textual modules into binary modules.
@@ -348,7 +354,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       try Self.serializeModuleDependencies(for: moduleId,
                                            swiftDependencyArtifacts: swiftDependencyArtifacts,
                                            clangDependencyArtifacts: clangDependencyArtifacts,
-                                           cachingEnabled: cas != nil)
+                                           shouldAbstractPath: cas != nil)
     if let cas = cas {
       // When using a CAS, write JSON into CAS and pass the ID on command-line.
       let casID = try cas.store(data: dependencyFileContent)
@@ -486,7 +492,8 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
 
   private static func resolveMainModuleDependencies(in dependencyGraph: InterModuleDependencyGraph,
                                                     reachabilityMap: [ModuleDependencyId : Set<ModuleDependencyId>],
-                                                    cas: SwiftScanCAS?) throws -> ResolvedModuleDependenciesCommandLineComponents {
+                                                    cas: SwiftScanCAS?,
+                                                    useAbstractPath: Bool) throws -> ResolvedModuleDependenciesCommandLineComponents {
     var inputAdditions: [TypedVirtualPath] = []
     var commandLineAdditions: [Job.ArgTemplate] = []
     let mainModuleId: ModuleDependencyId = .swift(dependencyGraph.mainModuleName)
@@ -501,6 +508,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
                                                in: dependencyGraph,
                                                reachabilityMap: reachabilityMap,
                                                cas: cas,
+                                               useAbstractPath: useAbstractPath,
                                                inputs: &inputAdditions,
                                                commandLine: &commandLineAdditions)
     return ResolvedModuleDependenciesCommandLineComponents(
@@ -587,7 +595,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       try Self.serializeModuleDependencies(for: mainModuleId,
                                            swiftDependencyArtifacts: swiftDependencyArtifacts,
                                            clangDependencyArtifacts: clangDependencyArtifacts,
-                                           cachingEnabled: false)
+                                           shouldAbstractPath: false)
 
     let dependencyFile =
       try VirtualPath.createUniqueTemporaryFileWithKnownContents(.init(validating: "\(mainModuleId.moduleName)-dependencies.json"),
@@ -615,7 +623,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
   private static func serializeModuleDependencies(for moduleId: ModuleDependencyId,
                                                   swiftDependencyArtifacts: Set<SwiftModuleArtifactInfo>,
                                                   clangDependencyArtifacts: Set<ClangModuleArtifactInfo>,
-                                                  cachingEnabled: Bool
+                                                  shouldAbstractPath: Bool
   ) throws -> Data {
     // Helper function to abstract the path.
     func abstractPath(_ module: String, suffix: String) throws -> TextualVirtualPath {
@@ -627,7 +635,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
     // Use abstract names and paths because caching build loads modules directly from CAS.
     let allDependencyArtifacts: [ModuleDependencyArtifactInfo] =
       try swiftDependencyArtifacts.sorted().map { info in
-        if !cachingEnabled {
+        if !shouldAbstractPath {
           return ModuleDependencyArtifactInfo.swift(info)
         }
         let updatedInfo = try SwiftModuleArtifactInfo(name: info.moduleName,
@@ -641,7 +649,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         return ModuleDependencyArtifactInfo.swift(updatedInfo)
       } +
       clangDependencyArtifacts.sorted().map { info in
-        if !cachingEnabled {
+        if !shouldAbstractPath {
           return ModuleDependencyArtifactInfo.clang(info)
         }
         let updatedInfo = try ClangModuleArtifactInfo(name: info.moduleName,
