@@ -212,8 +212,7 @@ public struct DependencyKey {
     /// A source file - acts as the root for all dependencies provided by
     /// declarations in that file.
     ///
-    /// The `name` of the file is a path to the `swiftdeps` file named in
-    /// the output file map for a given Swift file.
+    /// The `name` of the file is the path to the given Swift file.
     ///
     /// Swiftmodule files may contain a special section with swiftdeps information
     /// for the module. In that case the enclosing node should have a fingerprint.
@@ -322,7 +321,7 @@ public struct DependencyKey {
       case let .externalDepend(externalDependency):
         return "import '\(externalDependency.shortDescription)'"
       case let .sourceFileProvide(name: name):
-        return "source file from \((try? VirtualPath(path: name.lookup(in: holder)).basename) ?? name.lookup(in: holder))"
+        return "source file \((try? VirtualPath(path: name.lookup(in: holder)).basenameWithoutExt) ?? name.lookup(in: holder))"
       }
     }
   }
