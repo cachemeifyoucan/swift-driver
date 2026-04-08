@@ -354,7 +354,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
       try Self.serializeModuleDependencies(for: moduleId,
                                            swiftDependencyArtifacts: swiftDependencyArtifacts,
                                            clangDependencyArtifacts: clangDependencyArtifacts,
-                                           shouldAbstractPath: cas != nil)
+                                           shouldAbstractPath: useAbstractPath)
     if let cas = cas {
       // When using a CAS, write JSON into CAS and pass the ID on command-line.
       let casID = try cas.store(data: dependencyFileContent)
