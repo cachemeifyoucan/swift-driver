@@ -72,6 +72,25 @@ public final class IncrementalCompilationState {
       reporter: reporter)
       .compute(batchJobFormer: &driver)
 
+    // Populate the external module path map from scanning results so that
+    // relative module paths (e.g., "B.swiftmodule") can be resolved to
+    // absolute paths for filesystem currency checks and priors serialization.
+    if let planner = explicitModulePlanner {
+      initialState.graph.blockingConcurrentAccessOrMutation {
+        let map = Dictionary(uniqueKeysWithValues:
+          planner.dependencyGraph.modules.compactMap {
+            moduleId, moduleInfo -> (String, String)? in
+            guard case .swiftPrebuiltExternal = moduleId,
+                  case .swiftPrebuiltExternal(let details) = moduleInfo.details
+            else { return nil }
+            let abstractPath = moduleId.moduleName + "." + FileType.swiftModule.rawValue
+            let resolvedPath = VirtualPath.lookup(details.compiledModulePath.path).name
+            return (abstractPath, resolvedPath)
+          })
+        initialState.graph.setExternalModulePathMap(map)
+      }
+    }
+
     self.info = initialState.graph.info
 
     self.protectedState = ProtectedState(
