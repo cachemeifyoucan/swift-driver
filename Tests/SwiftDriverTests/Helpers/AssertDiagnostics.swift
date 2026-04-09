@@ -12,22 +12,36 @@
 //
 //===----------------------------------------------------------------------===//
 
-import XCTest
+import Dispatch
 import SwiftDriver
 import TSCBasic
 import TestUtilities
+import Testing
+
+private func verboseDiagHandler(_ diag: Diagnostic) {
+  guard verboseTestOutput else { return }
+  print(diag, to: &stderrStream); stderrStream.flush()
+}
 
 @discardableResult
-func assertDriverDiagnostics<Result> (
+func assertDriverDiagnostics<Result>(
   args: [String],
   env: ProcessEnvironmentBlock = ProcessEnv.block,
-  file: StaticString = #file, line: UInt = #line,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
   do body: (inout Driver, DiagnosticVerifier) throws -> Result
 ) throws -> Result {
   let matcher = DiagnosticVerifier()
-  defer { matcher.verify(file: file, line: line) }
+  let sourceLocation = SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
+  defer { matcher.verify(sourceLocation: sourceLocation) }
 
-  var driver = try Driver(args: args, env: env, diagnosticsEngine: DiagnosticsEngine(handlers: [matcher.emit(_:)]))
+  var driver = try Driver(
+    args: args,
+    env: env,
+    diagnosticsEngine: DiagnosticsEngine(handlers: [matcher.emit(_:), verboseDiagHandler])
+  )
   return try body(&driver, matcher)
 }
 
@@ -37,13 +51,22 @@ func assertDriverDiagnostics<Result> (
 func assertDriverDiagnostics(
   args: String...,
   env: ProcessEnvironmentBlock = ProcessEnv.block,
-  file: StaticString = #file, line: UInt = #line,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
   do body: (inout Driver, DiagnosticVerifier) throws -> Void
 ) throws {
   // Ensure there are no color codes in order to make matching work
   let argsInBlackAndWhite = [args[0], "-no-color-diagnostics"] + args.dropFirst()
   try assertDriverDiagnostics(
-    args: argsInBlackAndWhite, env: env, file: file, line: line, do: body
+    args: argsInBlackAndWhite,
+    env: env,
+    file: file,
+    fileID: fileID,
+    line: line,
+    column: column,
+    do: body
   )
 }
 
@@ -51,11 +74,15 @@ func assertDriverDiagnostics(
 func assertNoDriverDiagnostics(
   args: String...,
   env: ProcessEnvironmentBlock = ProcessEnv.block,
-  file: StaticString = #file, line: UInt = #line,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
   do body: (inout Driver) throws -> Void = { _ in }
 ) throws {
-  try assertDriverDiagnostics(args: args, env: env, file: file, line: line) {
-    driver, _ in try body(&driver)
+  try assertDriverDiagnostics(args: args, env: env, file: file, fileID: fileID, line: line, column: column) {
+    driver,
+    _ in try body(&driver)
   }
 }
 
@@ -63,23 +90,30 @@ func assertNoDriverDiagnostics(
 /// and errors marked as expected by calls to `DiagnosticVerifier.expect(_:)`,
 /// and will emit all diagnostics so marked by the end of the block.
 func assertDiagnostics(
-  file: StaticString = #file, line: UInt = #line,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
   do body: (DiagnosticsEngine, DiagnosticVerifier) throws -> Void
 ) rethrows {
   let matcher = DiagnosticVerifier()
-  defer { matcher.verify(file: file, line: line) }
+  let sourceLocation = SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
+  defer { matcher.verify(sourceLocation: sourceLocation) }
 
-  let diags = DiagnosticsEngine(handlers: [matcher.emit(_:)])
+  let diags = DiagnosticsEngine(handlers: [matcher.emit(_:), verboseDiagHandler])
   try body(diags, matcher)
 }
 
 /// Asserts that the `DiagnosticsEngine` it instantiates will not emit any warnings
 /// or errors.
 func assertNoDiagnostics(
-  file: StaticString = #file, line: UInt = #line,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
   do body: (DiagnosticsEngine) throws -> Void
 ) rethrows {
-  try assertDiagnostics(file: file, line: line) { diags, _ in try body(diags) }
+  try assertDiagnostics(file: file, fileID: fileID, line: line, column: column) { diags, _ in try body(diags) }
 }
 
 /// Checks that the diagnostics actually emitted by a `DiagnosticsEngine`
@@ -90,7 +124,7 @@ func assertNoDiagnostics(
 /// message are the same, and the message's text is a substring of the diagnostic's text,
 /// the diagnostics are considered to match. At the end of the assertion that created the
 /// verifier, the verifier evaluates all unmatched diagnostics and expectations to
-/// determine if any XCTest assertions failed.
+/// determine if any test assertions failed.
 ///
 /// Expected diagnostics are added to the verifier by calling
 /// `DiagnosticVerifier.expect(_:repetitions:)`. Any unmet
@@ -106,14 +140,13 @@ final class DiagnosticVerifier {
   fileprivate struct Expectation {
     let message: Diagnostic.Message
     let alternativeMessage: Diagnostic.Message?
-    let file: StaticString
-    let line: UInt
+    let sourceLocation: SourceLocation
   }
 
   // When we're finished, we will nil the dispatch queue so that any diagnostics
   // emitted after verification will cause a crash.
   fileprivate var queue: DispatchQueue? =
-      DispatchQueue(label: "DiagnosticVerifier")
+    DispatchQueue(label: "DiagnosticVerifier")
 
   // Access to `actual` and `expected` must be synchronized on `queue`. (Even
   // reads should be, although we only enforce writes.)
@@ -147,7 +180,8 @@ final class DiagnosticVerifier {
           self.expected.remove(at: i)
           return
         } else if let alternativeExpectedMessage = expectation.alternativeMessage,
-                  diag.matches(alternativeExpectedMessage) {
+          diag.matches(alternativeExpectedMessage)
+        {
           self.expected.remove(at: i)
           return
         }
@@ -165,7 +199,10 @@ final class DiagnosticVerifier {
     _ message: Diagnostic.Message,
     alternativeMessage: Diagnostic.Message? = nil,
     repetitions: Int = 1,
-    file: StaticString = #file, line: UInt = #line
+    file: String = #file,
+    fileID: String = #fileID,
+    line: Int = #line,
+    column: Int = #column,
   ) {
     queue!.async {
       var remaining = repetitions
@@ -176,9 +213,11 @@ final class DiagnosticVerifier {
         if remaining < 1 { return }
       }
 
-      let expectation = Expectation(message: message,
-                                    alternativeMessage: alternativeMessage,
-                                    file: file, line: line)
+      let expectation = Expectation(
+        message: message,
+        alternativeMessage: alternativeMessage,
+        sourceLocation: SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
+      )
       self.expected.append(contentsOf: repeatElement(expectation, count: remaining))
     }
   }
@@ -198,31 +237,38 @@ final class DiagnosticVerifier {
 
   /// Performs the final verification that the actual diagnostics
   /// matched the expectations.
-  func verify(file: StaticString, line: UInt) {
+  func verify(sourceLocation: SourceLocation) {
     // All along, we have removed expectations and diagnostics as they've been
     // matched, so if there's anything left, it didn't get matched.
 
-    var failures: [(String, StaticString, UInt)] = []
+    var failures: [(String, SourceLocation)] = []
 
     queue!.sync {
       for diag in self.actual where !self.permitted.contains(diag.behavior) {
-        failures.append((
-          "Driver emitted unexpected diagnostic \(diag.behavior): \(diag)",
-          file, line
-        ))
+        failures.append(
+          (
+            "Driver emitted unexpected diagnostic \(diag.behavior): \(diag)",
+            sourceLocation
+          )
+        )
       }
 
       for expectation in self.expected {
-        failures.append((
-          "Driver did not emit expected diagnostic: \(expectation.message)",
-          expectation.file, expectation.line
-        ))
+        failures.append(
+          (
+            "Driver did not emit expected diagnostic: \(expectation.message)",
+            expectation.sourceLocation
+          )
+        )
       }
       self.queue = nil
     }
 
     for failure in failures {
-      XCTFail(failure.0, file: failure.1, line: failure.2)
+      Issue.record(
+        Comment(rawValue: failure.0),
+        sourceLocation: sourceLocation
+      )
     }
   }
 }
@@ -238,4 +284,3 @@ fileprivate extension Collection {
     zip(indices, self)
   }
 }
-

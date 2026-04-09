@@ -12,25 +12,25 @@
 //
 //===----------------------------------------------------------------------===//
 
-import XCTest
 @_spi(Testing) import SwiftDriver
+import Testing
 
 // Yes, these are meta-tests! `assertDiagnostics(do:)` and friends are
 // complicated enough to warrant a few tests of their own. To test that they
-// fail when they're supposed to, this test class has access to an
-// `assertFails(times:during:)` helper; see `FailableTestCase` below for the
-// implementation.
+// fail when they're supposed to, we use `withKnownIssue` to catch expected
+// failures.
 
-class AssertDiagnosticsTests: FailableTestCase {
-  func testAssertNoDiagnostics() {
+@Suite(.suppressKnownIssues())
+struct AssertDiagnosticsTests {
+  @Test func noDiagnostics() async throws {
     assertNoDiagnostics { _ in }
 
-    assertFails {
+    try await expectedIssue {
       assertNoDiagnostics { diags in
         diags.emit(error: "something happened")
       }
     }
-    assertFails {
+    try await expectedIssue {
       assertNoDiagnostics { diags in
         diags.emit(warning: "hello")
       }
@@ -45,7 +45,7 @@ class AssertDiagnosticsTests: FailableTestCase {
     }
   }
 
-  func testAssertDiagnostics() {
+  @Test func diagnostics() async throws {
     assertDiagnostics { diags, match in
       diags.emit(error: "yankees won again")
       match.expect(.error("won"))
@@ -55,21 +55,21 @@ class AssertDiagnosticsTests: FailableTestCase {
       diags.emit(error: "yankees won again")
     }
 
-    assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       assertDiagnostics { diags, match in
         match.expect(.error("lost"))
         diags.emit(error: "yankees won again")
       }
     }
 
-    assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       assertDiagnostics { diags, match in
         diags.emit(error: "yankees won again")
         diags.emit(error: "yankees won yet again")
       }
     }
 
-    assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       assertDiagnostics { diags, match in
         match.expect(.error("won"))
         match.expect(.error("won"))
@@ -78,7 +78,7 @@ class AssertDiagnosticsTests: FailableTestCase {
 
     // We should get two assertion failures: one for expecting the warning, one
     // for emitting the error.
-    assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       assertDiagnostics { diags, match in
         match.expect(.warning("won"))
         diags.emit(.error("yankees won again"))
@@ -87,7 +87,7 @@ class AssertDiagnosticsTests: FailableTestCase {
 
     // We should get one assertion failure for the unexpected error. An
     // unexpected note is okay.
-    assertFails(times: 1) {
+    try await expectedIssue(count: 1) {
       assertDiagnostics { diags, match in
         diags.emit(error: "yankees won again")
         diags.emit(note: "investigate their star's doctor")
@@ -95,7 +95,7 @@ class AssertDiagnosticsTests: FailableTestCase {
     }
 
     // ...unless we tighten things up.
-    assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       assertDiagnostics { diags, match in
         diags.emit(error: "yankees won again")
         diags.emit(note: "investigate their star's doctor")
@@ -111,7 +111,7 @@ class AssertDiagnosticsTests: FailableTestCase {
     }
   }
 
-  func testAssertDriverDiagosotics() throws {
+  @Test func driverDiagnostics() async throws {
     try assertNoDriverDiagnostics(args: "swiftc", "test.swift")
 
     try assertDriverDiagnostics(args: "swiftc", "test.swift") { driver, verify in
@@ -119,19 +119,19 @@ class AssertDiagnosticsTests: FailableTestCase {
       verify.expect(.error("this mode does not support emitting modules"))
     }
 
-    try assertFails {
+    try await expectedIssue {
       try assertDriverDiagnostics(args: "swiftc", "test.swift") { driver, verify in
         verify.expect(.error("this mode does not support emitting modules"))
       }
     }
 
-    try assertFails {
+    try await expectedIssue {
       try assertDriverDiagnostics(args: "swiftc", "test.swift") { driver, verify in
         driver.diagnosticEngine.emit(.error("this mode does not support emitting modules"))
       }
     }
 
-    try assertFails(times: 2) {
+    try await expectedIssue(count: 2) {
       try assertDriverDiagnostics(args: "swiftc", "test.swift") { driver, verify in
         driver.diagnosticEngine.emit(.error("this mode does not support emitting modules"))
         verify.expect(.error("-static may not be used with -emit-executable"))
@@ -140,67 +140,55 @@ class AssertDiagnosticsTests: FailableTestCase {
   }
 }
 
-// MARK: - Failure testing
-
-/// Subclasses are considered to pass if exactly the right number of test assertions
-/// fail in each `assertFails(times:during:)` block. Failures are recorded
-/// if they fail too often or not often enough.
-class FailableTestCase: XCTestCase {
-  fileprivate var anticipatedFailures = 0
-
-  func assertFails(
-    times: Int = 1,
-    _ message: String = "",
-    file: String = #file,
-    line: Int = #line,
-    during body: () throws -> Void
-  ) rethrows {
-    let outer = anticipatedFailures
-    anticipatedFailures = times
-
-    defer {
-      if anticipatedFailures > 0 {
-        recordFailure(
-          withDescription: "\(anticipatedFailures) failure(s) were supposed to occur, but did not: \(message)",
-          inFile: file, atLine: line,
-          expected: false
-        )
-      }
-      anticipatedFailures = outer
+/// Invoke a function that is expected to record a specific number of issues.
+///
+/// - Parameters:
+///   - expectedCount: The exact number of issues expected.
+///   - comment: An optional comment describing the known issues.
+///   - file: The source file to attribute issues to.
+///   - line: The source line to attribute issues to.
+///   - body: The function to invoke.
+private func expectedIssue(
+  count: Int = 1,
+  _ comment: Comment? = nil,
+  file: String = #file,
+  fileID: String = #fileID,
+  line: Int = #line,
+  column: Int = #column,
+  _ body: () async throws -> Void
+) async throws {
+  let sourceLocation = SourceLocation(
+    fileID: fileID,
+    filePath: file,
+    line: line,
+    column: column
+  )
+  try await confirmation(
+    comment,
+    expectedCount: count,
+    sourceLocation: sourceLocation
+  ) { issueConfirmation in
+    try await withKnownIssue(
+      comment,
+      isIntermittent: false,
+      sourceLocation: sourceLocation
+    ) {
+      try await body()
+    } matching: { issue in
+      issueConfirmation.confirm()
+      return true
     }
-
-    try body()
   }
+}
 
-  override func setUp() {
-    super.setUp()
-    anticipatedFailures = 0
-  }
-
-  override func recordFailure(
-    withDescription description: String,
-    inFile filePath: String, atLine lineNumber: Int,
-    expected: Bool
-  ) {
-    guard anticipatedFailures == 0 else {
-      anticipatedFailures -= 1
-      return
-    }
-
-    if #available(macOS 10.13, *) {
-
-#if canImport(Darwin)
-      super.record(XCTIssue(type: .assertionFailure,
-                            compactDescription: description,
-                            sourceCodeContext: XCTSourceCodeContext(location: XCTSourceCodeLocation(filePath: filePath,
-                                                                                                    lineNumber: lineNumber))))
-#else
-      super.recordFailure(withDescription: description,
-                          inFile: filePath, atLine: lineNumber,
-                          expected: expected)
-#endif
-    } else {
-      fatalError(description, line: UInt(lineNumber))
-    }
+private extension Trait where Self == IssueHandlingTrait {
+  /// Filter out known issues, keeping only real failures (like confirmation miscounts).
+  static func suppressKnownIssues() -> Self {
+    #if compiler(>=6.3)
+    .filterIssues { $0.isFailure }
+    #else
+    // Older version do not have the API to filter so test will show as known issue.
+    .filterIssues { issue in true }
+    #endif
   }
 }
