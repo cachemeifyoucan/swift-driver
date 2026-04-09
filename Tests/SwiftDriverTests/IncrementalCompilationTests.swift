@@ -2140,9 +2140,9 @@ extension DiagVerifiable {
   }
 
   @DiagsBuilder func fingerprintChanged(_ aspect: DependencyKey.DeclAspect, _ input: String) -> [Diagnostic.Message] {
-    "Incremental compilation: Fingerprint changed for existing \(aspect) of source file from \(input).swiftdeps in \(input).swift"
+    "Incremental compilation: Fingerprint changed for existing \(aspect) of source file \(input) in \(input).swift"
   }
- @DiagsBuilder func fingerprintsChanged(_ input: String) -> [Diagnostic.Message] {
+  @DiagsBuilder func fingerprintsChanged(_ input: String) -> [Diagnostic.Message] {
     for aspect: DependencyKey.DeclAspect in [.interface, .implementation] {
       fingerprintChanged(aspect, input)
     }
@@ -2155,7 +2155,7 @@ extension DiagVerifiable {
   }
 
   @DiagsBuilder func newDefinitionOfSourceFile(_ aspect: DependencyKey.DeclAspect, _ input: String) -> [Diagnostic.Message] {
-    "Incremental compilation: New definition: \(aspect) of source file from \(input).swiftdeps in \(input).swift"
+    "Incremental compilation: New definition: \(aspect) of source file \(input) in \(input).swift"
   }
   @DiagsBuilder func newDefinitionOfTopLevelName(_ aspect: DependencyKey.DeclAspect, name: String, input: String) -> [Diagnostic.Message] {
     "Incremental compilation: New definition: \(aspect) of top-level name '\(name)' in \(input).swift"
