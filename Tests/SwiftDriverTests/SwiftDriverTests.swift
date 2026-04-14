@@ -9026,7 +9026,7 @@ final class SwiftDriverTests: XCTestCase {
 
     try withTemporaryDirectory { toolsDirectory in
       let customSwiftFrontend = toolsDirectory.appending(component: executableName("swift-frontend"))
-      let customSwiftScan = toolsDirectory.appending(component: sharedLibraryName("lib_InternalSwiftScan"))
+      let customSwiftScan = toolsDirectory.appending(component: sharedLibraryName("_InternalSwiftScan"))
       try localFileSystem.createSymbolicLink(customSwiftFrontend, pointingAt: defaultSwiftFrontend, relative: false)
 
       try withTemporaryDirectory { tempDirectory in
