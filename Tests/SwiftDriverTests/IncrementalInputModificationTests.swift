@@ -107,7 +107,7 @@ struct IncrementalInputModificationTests: DiagVerifiable {
     #expect(replanJobs.contains { $0.kind == .emitModule })
   }
 
-  @Test(.skipLinux()) func addingInput() async throws {
+  @Test func addingInput() async throws {
     let h = try IncrementalTestHarness()
     try h.runAddingInputTest(newInput: "another", defining: "nameInAnother")
   }

@@ -22,7 +22,7 @@ import Testing
 @Suite(.serialized, .enabled(if: sdkArgumentsAvailable, "SDK not available"))
 struct IncrementalBasicTests: DiagVerifiable {
 
-  @Test(.skipLinux("Failed in Linux CI")) func incrementalDiagnostics() async throws {
+  @Test func incrementalDiagnostics() async throws {
     let h = try IncrementalTestHarness()
     try h.runIncrementalPipeline(checkDiagnostics: true)
   }
@@ -62,7 +62,7 @@ struct IncrementalBasicTests: DiagVerifiable {
   }
 
   /// Ensure that if an output of post-compile job is missing, the job gets rerun.
-  @Test(.skipLinux("Failed in Linux CI")) func incrementalPostCompileJob() async throws {
+  @Test func incrementalPostCompileJob() async throws {
     let h = try IncrementalTestHarness()
     let driver = try h.buildInitialState(checkDiagnostics: true)
     for postCompileOutput in try driver.postCompileOutputs() {
@@ -124,7 +124,7 @@ struct IncrementalBasicTests: DiagVerifiable {
     _ = try h.doABuild(whenAutolinking: [], expecting: disabledForWMO, arguments: args)
   }
 
-  @Test(.skipLinux("Failed in Linux CI")) func alwaysRebuildDependents() async throws {
+  @Test func alwaysRebuildDependents() async throws {
     let h = try IncrementalTestHarness()
     try h.buildInitialState(checkDiagnostics: true)
     try h.checkAlwaysRebuildDependents(checkDiagnostics: true)
