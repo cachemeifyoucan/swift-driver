@@ -1117,9 +1117,9 @@ extension ModuleDependencyGraph {
       mockSerializedGraphVersion ?? Self.serializedGraphVersion)
 
     do {
-      try fileSystem.writeFileContents(path,
-                                       bytes: data,
-                                       atomically: true)
+      try withExponentialBackoff {
+        try fileSystem.writeFileContents(path, bytes: data, atomically: true)
+      }
     } catch {
       throw IncrementalCompilationState.WriteDependencyGraphError.couldNotWrite(
         path: path, error: error)

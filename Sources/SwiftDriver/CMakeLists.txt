@@ -113,6 +113,7 @@ add_library(SwiftDriver
   Utilities/DOTModuleDependencyGraphSerializer.swift
   Utilities/DateAdditions.swift
   Utilities/Diagnostics.swift
+  Utilities/ExponentialBackoff.swift
   Utilities/FileList.swift
   Utilities/FileMetadata.swift
   Utilities/FileType.swift
