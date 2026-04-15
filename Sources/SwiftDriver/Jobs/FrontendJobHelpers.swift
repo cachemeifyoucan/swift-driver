@@ -1188,7 +1188,7 @@ extension Driver {
 #if os(Windows)
       commandLine.appendPath(pluginPathRoot.appending(components: "bin", sharedLibraryName("SwiftInProcPluginServer")))
 #else
-      commandLine.appendPath(pluginPathRoot.appending(components: "lib", "swift", "host", sharedLibraryName("libSwiftInProcPluginServer")))
+      commandLine.appendPath(pluginPathRoot.appending(components: "lib", "swift", "host", sharedLibraryName("SwiftInProcPluginServer")))
 #endif
     }
 

@@ -25,13 +25,12 @@ internal func executableName(_ name: String) -> String {
 
 @_spi(Testing) public func sharedLibraryName(_ name: String) -> String {
 #if canImport(Darwin)
-  let ext = ".dylib"
+  return "lib" + name + ".dylib"
 #elseif os(Windows)
-  let ext = ".dll"
+  return name + ".dll"
 #else
-  let ext = ".so"
+  return "lib" + name + ".so"
 #endif
-  return name + ext
 }
 
 // FIXME: This can be subtly wrong, we should rather

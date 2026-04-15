@@ -272,13 +272,13 @@ extension Toolchain {
        let path = try? AbsolutePath(validating: overrideString) {
       return path
     }
+    let libraryName = sharedLibraryName("_InternalSwiftScan")
 #if os(Windows)
     // no matter if we are in a build tree or an installed tree, the layout is
     // always: `bin/_InternalSwiftScan.dll`
     return try getToolPath(.swiftCompiler).parentDirectory // bin
-                                          .appending(component: "_InternalSwiftScan.dll")
+                                          .appending(component: libraryName)
 #else
-    let libraryName = sharedLibraryName("lib_InternalSwiftScan")
     let compilerPath = try getToolPath(.swiftCompiler)
     let toolchainRootPath = compilerPath.parentDirectory // bin
                                         .parentDirectory // toolchain root
