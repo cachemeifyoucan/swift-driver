@@ -682,6 +682,30 @@ def build_using_cmake(args, toolchain_bin, build_dir, targets):
         )
     )
 
+    if args.enable_caching and args.caching_cas_path:
+        base_swift_flags.append("-explicit-module-build")
+        base_swift_flags.append("-cache-compile-job")
+        base_swift_flags.append("-cas-path")
+        base_swift_flags.append(args.caching_cas_path)
+        if args.caching_plugin_path:
+            base_swift_flags.append("-cas-plugin-path")
+            base_swift_flags.append(args.caching_plugin_path)
+        for opt in (args.caching_plugin_option or []):
+            base_swift_flags.append("-cas-plugin-option")
+            base_swift_flags.append(opt)
+        if args.caching_prefix_map:
+            base_swift_flags.append("-scanner-prefix-map-sdk")
+            base_swift_flags.append("/^sdk")
+            base_swift_flags.append("-scanner-prefix-map-toolchain")
+            base_swift_flags.append("/^toolchain")
+            base_swift_flags.append("-scanner-prefix-map")
+            base_swift_flags.append(args.package_path + "=/^src")
+        if args.caching_enable_mccas:
+            base_swift_flags.append("-Xfrontend")
+            base_swift_flags.append("-cas-backend")
+            base_swift_flags.append("-Xllvm")
+            base_swift_flags.append("-cas-friendly-debug-info")
+
     for target in targets:
         base_cmake_flags = []
         swift_flags = base_swift_flags.copy()
@@ -1045,6 +1069,38 @@ def main():
             "--enable-asan",
             action="store_true",
             help="driver is being built with ASAN support",
+        )
+        parser.add_argument(
+            "--enable-caching",
+            action="store_true",
+            help="enable Swift compilation caching",
+        )
+        parser.add_argument(
+            "--caching-cas-path",
+            metavar="PATH",
+            help="the CAS directory path for compilation caching",
+        )
+        parser.add_argument(
+            "--caching-plugin-path",
+            metavar="PATH",
+            help="the path to the CAS plugin for compilation caching",
+        )
+        parser.add_argument(
+            "--caching-plugin-option",
+            action="append",
+            default=[],
+            help="options to pass to the CAS plugin "
+                 "(can be specified multiple times)",
+        )
+        parser.add_argument(
+            "--caching-prefix-map",
+            action="store_true",
+            help="enable prefix mapping for cached builds",
+        )
+        parser.add_argument(
+            "--caching-enable-mccas",
+            action="store_true",
+            help="enable CAS backend and CAS-friendly debug info",
         )
 
     subparsers = parser.add_subparsers(
