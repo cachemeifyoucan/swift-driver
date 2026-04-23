@@ -60,7 +60,7 @@
   /// The path for the module's .pcm file
   public let clangModulePath: TextualVirtualPath
   /// The path for this module's .modulemap file
-  public let clangModuleMapPath: TextualVirtualPath
+  public let clangModuleMapPath: TextualVirtualPath?
   /// A flag to indicate whether this module is a framework
   public let isFramework: Bool
   /// A flag to indicate whether this module is a dependency
@@ -71,7 +71,7 @@
   /// The library level of the module (e.g. "api", "spi").
   public let libraryLevel: LibraryLevel?
 
-  init(name: String, modulePath: TextualVirtualPath, moduleMapPath: TextualVirtualPath,
+  init(name: String, modulePath: TextualVirtualPath, moduleMapPath: TextualVirtualPath? = nil,
        moduleCacheKey: String? = nil, isBridgingHeaderDependency: Bool = true,
        libraryLevel: LibraryLevel? = nil) {
     self.moduleName = name
