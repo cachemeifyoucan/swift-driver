@@ -654,7 +654,7 @@ public typealias ExternalTargetModuleDetailsMap = [ModuleDependencyId: ExternalT
         }
         let updatedInfo = try ClangModuleArtifactInfo(name: info.moduleName,
                                                       modulePath: abstractPath(info.moduleName, suffix: ".pcm"),
-                                                      moduleMapPath: info.clangModuleMapPath,
+                                                      moduleMapPath: nil,
                                                       moduleCacheKey: info.clangModuleCacheKey,
                                                       isBridgingHeaderDependency: info.isBridgingHeaderDependency,
                                                       libraryLevel: info.libraryLevel)
